@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="Print.moe 免费的动漫壁纸API"><meta name="keywords" content="print.moe"><meta name="author" content="Image,undefined"><meta name="copyright" content="Image"><title>Print.moe 免费的动漫壁纸API | 编译程序</title><link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.min.css?version=1.5.2"><link rel="stylesheet" type="text/css" href="https://unpkg.com/gitment@latest/style/default.css"><script src="https://unpkg.com/gitment@latest/dist/gitment.browser.js"></script><script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-102495079-1', 'auto');
+ga('send', 'pageview');</script><script>var GLOBAL = { 
+  root: '/',
+  algolia: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  localSearch: {"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}"},"path":"search.xml"}
+} </script></head><body><canvas class="fireworks"></canvas><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar"><div class="toggle-sidebar-info text-center"><span data-toggle="切换文章详情">切换站点概览</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#目录"><span class="toc-number">1.</span> <span class="toc-text">目录</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#项目背景"><span class="toc-number">2.</span> <span class="toc-text">项目背景</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#功能简介"><span class="toc-number">2.1.</span> <span class="toc-text">功能简介</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#工作原理"><span class="toc-number">2.1.1.</span> <span class="toc-text">工作原理</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Web-Api"><span class="toc-number">3.</span> <span class="toc-text">Web Api</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Json-Output"><span class="toc-number">3.0.1.</span> <span class="toc-text">Json Output</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Raw-Output"><span class="toc-number">3.0.2.</span> <span class="toc-text">Raw Output</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-order-4随机接口也支持所有的参数"><span class="toc-number">4.</span> <span class="toc-text">2.order=4随机接口也支持所有的参数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FBI-Warning"><span class="toc-number">5.</span> <span class="toc-text">FBI Warning</span></a></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="http://z4a.net/images/2018/04/06/kamuyi.jpg"></div><div class="author-info__name text-center">Image</div><div class="author-info__description text-center">程序员生活频道</div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">文章</span><span class="pull-right">36</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">标签</span><span class="pull-right">27</span></a><a class="author-info-articles__categories article-meta" href="/categories"><span class="pull-left">分类</span><span class="pull-right">7</span></a></div><hr><div class="author-info-links"><div class="author-info-links__title text-center">Links</div><a class="author-info-links__name text-center" href="https://blog.kkkkkkk.bid" target="_blank">安东尼</a><a class="author-info-links__name text-center" href="https://eqblog.com" target="_blank">EQblog</a><a class="author-info-links__name text-center" href="https://print.moe" target="_blank">Print.moe</a><a class="author-info-links__name text-center" href="https://teduis.com/" target="_blank">Jiuling's Blog</a></div></div></div><div id="content-outer"><div id="top-container" style="background-image: url(https://print.moe/api.jpg?id=241520)"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">编译程序</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus"><a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a></span></div><div id="post-info"><div id="post-title">Print.moe 免费的动漫壁纸API</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2017-07-31</time></div></div></div><div class="layout" id="content-inner"><article id="post"><div id="post-content"><h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><p>更新日期：2017-09-17</p>
+<blockquote>
+<ul>
+<li>0.<a href="#0">项目背景</a></li>
+<li>1.<a href="#1">功能简介</a></li>
+<li>2.<a href="#2">Web Api</a><ul>
+<li>2a.<a href="#2.1">Json输出(暂时取消)</a></li>
+<li>2b.<a href="#2.2">Raw图像输出</a></li>
+</ul>
+</li>
+<li>3.<a href="#3">FBI Warning</a></li>
+</ul>
+</blockquote>
+<hr>
+<h2 id="项目背景"><a href="#项目背景" class="headerlink" title="项目背景"></a><div id="0">项目背景</div></h2><p><a href="https://print.moe" target="_blank" rel="noopener">Print.Moe</a>作为我的一个实验性公共项目已经准备了很长时间，不过因为这个学期的事情比较多。</p>
+<p>图片均是从konachan上爬下来的，截至03/08/17晚9:30分总‘收录’图片197390条，并以每天20-50条的速度增加，由于并不是实时添加，所以K站上最新的图片不一定会马上在我的服务器中。因为你懂得的原因，可公共开放的为141977条，这14万条将可以从api中检索到。<br><a id="more"></a><br>开发计划以及完善计划都拖了很久，上线小范围测试(没啥人用)之后，应该能够满足小部分人的需求。</p>
+<p>80G的硬盘+2t的国内直连机房，应该能够吃得消。见过有人在15年爬完konachan全站大约43G。</p>
+<hr>
+<h3 id="功能简介"><a href="#功能简介" class="headerlink" title="功能简介"></a><div id="1">功能简介</div></h3><p><a href="https://print.moe" target="_blank" rel="noopener">Print.Moe</a>提供公共的免费动漫高清壁纸检索功能。</p>
+<hr>
+<h4 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a><div id="1.1">工作原理</div></h4><p>使用Python爬虫从Konachan官方提供的接口中爬取所有的信息，并存储至mysql数据库中。</p>
+<p>并由Flask制作Api检索接口从mysql服务器检索数据。</p>
+<p>由于Konachan在国内被屏蔽，所以Raw输出下将由本人的机子进行CDN处理，可以直接得到图片。</p>
+<hr>
+<h2 id="Web-Api"><a href="#Web-Api" class="headerlink" title="Web Api"></a><div id="2">Web Api</div></h2><p><a href="https://print.moe" target="_blank" rel="noopener">Print.Moe</a>服务提供两种接口</p>
+<blockquote>
+<ul>
+<li>Json输出接口</li>
+<li>Raw输出接口</li>
+</ul>
+</blockquote>
+<p>提供的检索接口直接需要将参数拼到url上就可以了。</p>
+<p>支持的参数及默认参数（-1则表示不进行处理）<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">limit=1 #输出条目数</span><br><span class="line">page = 1 #第几页</span><br><span class="line">author = -1 #作者</span><br><span class="line">days = 1 #创建日期多少天内</span><br><span class="line">w_max = -1 #最大宽度</span><br><span class="line">w_min = -1 #最小宽度</span><br><span class="line">h_max = -1 #最大高度</span><br><span class="line">h_min = -1 #最小高度</span><br><span class="line">desc = 1 #排序方式</span><br><span class="line">order = 1 #排序依据</span><br><span class="line">tags =  #tag标签</span><br></pre></td></tr></table></figure></p>
+<p>为了防止response太大，所以limit请不要设置太大,建议在100以下。</p>
+<p>desc=[‘asc’,’desc’],所以默认1为desc降序，0为升序</p>
+<p>order=[‘score’,’width’,’height’,’created_at’,’random’],0-4(Json模式下random无效)</p>
+<hr>
+<h4 id="Json-Output"><a href="#Json-Output" class="headerlink" title="Json Output"></a><div id="2.1">Json Output</div></h4><p>Json输出接口将返回所检索条目的所有数据，目前收录有效字段：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">id #图片于print.moe服务器中的id</span><br><span class="line">kid #图片在konachan的id</span><br><span class="line">author #图片作者名</span><br><span class="line">tags #图片在k站的标签</span><br><span class="line">created_at #unix时间戳，图片的上传时间</span><br><span class="line">creator_id #作者在K站的id(?)</span><br><span class="line">source #图片来源</span><br><span class="line">score #得分</span><br><span class="line">md5</span><br><span class="line">file_size #原图大小</span><br><span class="line">file_url #原图在K站的缓存地址</span><br><span class="line">is_shown_in_index #是否在K站首页显示(?)</span><br><span class="line">preview_url #预览图片(完全不能看的图)</span><br><span class="line">sample_url #样例图片(可以看的图)</span><br><span class="line">jpeg_url #jpeg压缩过后的图片地址</span><br><span class="line">has_children #是否有儿童(!)</span><br><span class="line">width #宽度</span><br><span class="line">height #高度</span><br></pre></td></tr></table></figure>
+<p>Example：</p>
+<p><a href="https://print.moe/api.json?order=3&amp;limit=10&amp;tags=miku&amp;days=100&amp;h_min=800" target="_blank" rel="noopener">https://print.moe/api.json?order=3&amp;limit=10&amp;tags=miku&amp;days=100&amp;h_min=800</a></p>
+<p><code>检索tag中有miku，高度最小为800的图片，以创建时间降序100天内最新的10张</code></p>
+<hr>
+<h4 id="Raw-Output"><a href="#Raw-Output" class="headerlink" title="Raw Output"></a><div id="2.2">Raw Output</div></h4><p>[17号更新]</p>
+<p>1.可以使用size参数限制图片大小，因为发现数据库中有很多的几十M的图片，所以加了这个参数，单位是byte</p>
+<p>如果限制最大1M的图片则1024*1024</p>
+<h2 id="2-order-4随机接口也支持所有的参数"><a href="#2-order-4随机接口也支持所有的参数" class="headerlink" title="2.order=4随机接口也支持所有的参数"></a>2.order=4随机接口也支持所有的参数</h2><p>[31号更新新特性]</p>
+<p>可通过kid进行图片获取，如api.jpg?id=243565(单纯把我当成Konachan的CDN了)。</p>
+<hr>
+<p>直出模式就是直接输出一张图片，可用于网站的背景什么的，由于浏览器缓存的原因，建议在最后面&amp;上一个随机数。</p>
+<p>直出模式会先在服务器创建副本再输出给浏览器。</p>
+<p>参数同上<br>Example0：</p>
+<p><img src="https://print.moe/api.jpg?order=3&amp;tags=Morgiana&amp;day=100&amp;h_min=1200" alt="范例"></p>
+<p><a href="https://print.moe/api.jpg?order=3&amp;tags=Morgiana&amp;days=100&amp;h_min=1200" target="_blank" rel="noopener">https://print.moe/api.jpg?order=3&amp;tags=Morgiana&amp;days=100&amp;h_min=1200</a></p>
+<p><code>检索tag中有摩爷(我正房)，高度最小为1200的图片，以创建时间降序100天内最新的1张</code></p>
+<p>Example1：</p>
+<p><img src="https://print.moe/api.jpg?order=4" alt="范例"></p>
+<p><a href="https://print.moe/api.jpg?order=4" target="_blank" rel="noopener">https://print.moe/api.jpg?order=4</a></p>
+<p><code>从14W的数据库中随机检索出一张</code></p>
+<hr>
+<h2 id="FBI-Warning"><a href="#FBI-Warning" class="headerlink" title="FBI Warning"></a><div id="3">FBI Warning</div></h2><ul>
+<li>最主要的注意事项：<code>图片的版权归其作者所有，任何未经许可的侵权或商业行为均是违法的</code>。</li>
+<li>上线有一天发现有人爬我的图，我声明一下！！如果你想要我的数据库，请联系我，我可以直接给你，请不要使用爬虫直接爬图片的行为（虽然我也做过，但是后来改成爬json接口了哇）！爬Json接口的话我倒是不在意。</li>
+<li>直出模式均由本人的服务器进行CDN（不想备案，没钱买CDN），所以请不要进行滥用。。。大佬手下留情！</li>
+<li>本人对同IP的访问频率做了限制，1ip一秒平均请求1次，突发2次。</li>
+<li>有任何问题欢迎留言（真的有人看吗）</li>
+</ul>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">Image</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://by.cx/2017/07/31/Print-moe-免费的动漫壁纸API/">https://by.cx/2017/07/31/Print-moe-免费的动漫壁纸API/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://by.cx" target="_blank">编译程序</a>！</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/print-moe/">print.moe</a></div><nav id="pagination"><div class="prev-post pull-left"><a href="/2017/08/25/8-21图/"><i class="fa fa-chevron-left">  </i><span>8-21图</span></a></div><div class="next-post pull-right"><a href="/2017/07/23/Tomcat日志排坑/"><span>Tomcat日志排坑</span><i class="fa fa-chevron-right"></i></a></div></nav><div class="post-adv"><script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><!-- bycx2 --><ins class="adsbygoogle"     style="display:inline-block;width:970px;height:90px"     data-ad-client="ca-pub-2949782691473536" data-ad-slot="8343677772"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div><div id="gitment-container"></div><script>var gitment = new Gitment({
+  id: window.location.pathname,
+  id: '{{ page.date }}',
+  owner: 'tusik',
+  repo: 'by.cxcomment',
+  oauth: {
+    client_id: '1463b20aeb2e597209cb',
+    client_secret: '124cb23d4f7b9f568ae2b66b401a6fcf692c2790'
+  }
+})
+gitment.render('gitment-container')</script></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2015 - 2018 By Image</div><div class="framework-info"><span>驱动 - </span><a href="http://hexo.io"><span>Hexo</span></a><span class="footer-separator">|</span><span>主题 - </span><a href="https://github.com/Molunerfinn/hexo-theme-melody"><span>Melody</span></a></div><div class="busuanzi"><script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file-o"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="/js/third-party/anime.min.js"></script><script src="/js/third-party/jquery.min.js"></script><script src="/js/third-party/jquery.fancybox.min.js"></script><script src="/js/third-party/velocity.min.js"></script><script src="/js/third-party/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.5.2"></script><script src="/js/fancybox.js?version=1.5.2"></script><script src="/js/sidebar.js?version=1.5.2"></script><script src="/js/copy.js?version=1.5.2"></script><script src="/js/fireworks.js?version=1.5.2"></script><script src="/js/transition.js?version=1.5.2"></script><script src="/js/scroll.js?version=1.5.2"></script><script src="/js/head.js?version=1.5.2"></script></body></html>

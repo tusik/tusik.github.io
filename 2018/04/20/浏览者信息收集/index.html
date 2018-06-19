@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="浏览者信息收集"><meta name="keywords" content="软件开发,信息收集"><meta name="author" content="Image,undefined"><meta name="copyright" content="Image"><title>浏览者信息收集 | 编译程序</title><link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.min.css?version=1.5.2"><link rel="stylesheet" type="text/css" href="https://unpkg.com/gitment@latest/style/default.css"><script src="https://unpkg.com/gitment@latest/dist/gitment.browser.js"></script><script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-102495079-1', 'auto');
+ga('send', 'pageview');</script><script>var GLOBAL = { 
+  root: '/',
+  algolia: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  localSearch: {"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}"},"path":"search.xml"}
+} </script></head><body><canvas class="fireworks"></canvas><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar"><div class="toggle-sidebar-info text-center"><span data-toggle="切换文章详情">切换站点概览</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Request"><span class="toc-number">1.</span> <span class="toc-text">Request</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#fingerprintjs2"><span class="toc-number">2.</span> <span class="toc-text">fingerprintjs2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#使用及结果"><span class="toc-number">3.</span> <span class="toc-text">使用及结果</span></a></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="http://z4a.net/images/2018/04/06/kamuyi.jpg"></div><div class="author-info__name text-center">Image</div><div class="author-info__description text-center">程序员生活频道</div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">文章</span><span class="pull-right">36</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">标签</span><span class="pull-right">27</span></a><a class="author-info-articles__categories article-meta" href="/categories"><span class="pull-left">分类</span><span class="pull-right">7</span></a></div><hr><div class="author-info-links"><div class="author-info-links__title text-center">Links</div><a class="author-info-links__name text-center" href="https://blog.kkkkkkk.bid" target="_blank">安东尼</a><a class="author-info-links__name text-center" href="https://eqblog.com" target="_blank">EQblog</a><a class="author-info-links__name text-center" href="https://print.moe" target="_blank">Print.moe</a><a class="author-info-links__name text-center" href="https://teduis.com/" target="_blank">Jiuling's Blog</a></div></div></div><div id="content-outer"><div id="top-container" style="background-image: url(https://print.moe/api.jpg?id=241520)"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">编译程序</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus"><a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a></span></div><div id="post-info"><div id="post-title">浏览者信息收集</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2018-04-20</time><span class="post-meta__separator">|</span><i class="fa fa-inbox post-meta__icon" aria-hidden="true"></i><a class="post-meta__categories" href="/categories/程序/">程序</a></div></div></div><div class="layout" id="content-inner"><article id="post"><div id="post-content"><p>仅仅记录投票票数确实有些无聊，所以需要适当的收集一些信息在进行统计就能得到一些更有趣的图表。</p>
+<h2 id="Request"><a href="#Request" class="headerlink" title="Request"></a>Request</h2><p>以最基础的<code>Request header</code>入手。</p>
+<blockquote>
+<p>HTTP 消息头允许客户端和服务器通过 request和 response传递附加信息。一个请求头由不区分大小写的名称后跟一个冒号“：”，冒号后跟具体的值（不带换行符）组成。该值前面的引导空白会被忽略。</p>
+</blockquote>
+<p>每次的HTTP连接中必定会有header内容，因此从此很方便的获取访客的基本信息。</p>
+<p>header支持的标准字段有很多，在此就仅列出一些拥有有效信息的字段：</p>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>描述</th>
+<th>示例</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accept-Charset</td>
+<td>能够接受的字符集</td>
+<td>Accept-Charset: utf-8</td>
+<td>常设</td>
+</tr>
+<tr>
+<td>Accept-Encoding</td>
+<td>能够接受的编码方式列表。</td>
+<td>Accept-Encoding: gzip, deflate</td>
+<td>常设</td>
+</tr>
+<tr>
+<td>Accept-Language</td>
+<td>能够接受的回应内容的自然语言列表。</td>
+<td>Accept-Language: en-US</td>
+<td>常设</td>
+</tr>
+<tr>
+<td>Referer</td>
+<td>來源頁面</td>
+<td>Referer: <a href="http://en.wikipedia.org/wiki/Main_Page" target="_blank" rel="noopener">http://en.wikipedia.org/wiki/Main_Page</a></td>
+<td>常設</td>
+</tr>
+<tr>
+<td>User-Agent</td>
+<td>浏览器的浏览器身份标识字符串</td>
+<td>Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Safari/537.36 Maxthon/5.2.1.1000</td>
+<td>常設</td>
+</tr>
+</tbody>
+</table>
+<p>想要查看更多内容查看<a href="https://zh.wikipedia.org/wiki/HTTP%E5%A4%B4%E5%AD%97%E6%AE%B5#请求字段" target="_blank" rel="noopener">Wikipedia</a></p>
+<p>以上就是比较常用的含有有效内容的字段。</p>
+<p>不过Request header中包含的信息实在是少的可怜，所以需要使用其他方法来获取更多的信息。<br><a id="more"></a></p>
+<h2 id="fingerprintjs2"><a href="#fingerprintjs2" class="headerlink" title="fingerprintjs2"></a>fingerprintjs2</h2><p>上一篇文章提到的fingerprintjs没想到刚发布几天结果就推出了二代，所以在这里重新提一下。</p>
+<p>并且除了Request header以外我们还可以学习fingerprintjs是怎么获取访客信息的。</p>
+<p>在Readme中我们可以看到信息来源</p>
+<blockquote>
+<ol>
+<li>UserAgent</li>
+<li>Language</li>
+<li>Color Depth</li>
+<li>Screen Resolution</li>
+<li>Timezone</li>
+<li>Has session storage or not</li>
+<li>Has local storage or not</li>
+<li>Has indexed DB</li>
+<li>Has IE specific ‘AddBehavior’</li>
+<li>Has open DB</li>
+<li>CPU class</li>
+<li>Platform</li>
+<li>DoNotTrack or not</li>
+<li>Full list of installed fonts (maintaining their order, which  increases the entropy), implemented with Flash.</li>
+<li>A list of installed fonts, detected with JS/CSS (side-channel technique) - can detect up to 500 installed fonts without flash</li>
+<li>Canvas fingerprinting</li>
+<li>WebGL fingerprinting</li>
+<li>Plugins (IE included)</li>
+<li>Is AdBlock installed or not</li>
+<li>Has the user tampered with its languages 1</li>
+<li>Has the user tampered with its screen resolution 1</li>
+<li>Has the user tampered with its OS 1</li>
+<li>Has the user tampered with its browser 1</li>
+<li>Touch screen detection and capabilities</li>
+<li>Pixel Ratio</li>
+<li>System’s total number of logical processors available to the user agent.</li>
+<li>Device memory</li>
+</ol>
+</blockquote>
+<p>是的，我们可以直接引用fingerprint2.js后调用他的函数就可以直接获取了XD</p>
+<h2 id="使用及结果"><a href="#使用及结果" class="headerlink" title="使用及结果"></a>使用及结果</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> Fingerprint2().get(<span class="function"><span class="keyword">function</span>(<span class="params">result, components</span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result) <span class="comment">// a hash, representing your device fingerprint</span></span><br><span class="line">  <span class="built_in">console</span>.log(components) <span class="comment">// an array of FP components</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p><img src="https://z4a.net/images/2018/04/20/20180420211902.png" alt="output"><br>完美⭐~</p>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">Image</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://by.cx/2018/04/20/浏览者信息收集/">https://by.cx/2018/04/20/浏览者信息收集/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://by.cx" target="_blank">编译程序</a>！</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/软件开发/">软件开发</a><a class="post-meta__tags" href="/tags/信息收集/">信息收集</a></div><nav id="pagination"><div class="prev-post pull-left"><a href="/2018/05/10/hetzner-proxmox/"><i class="fa fa-chevron-left">  </i><span>hetzner安装proxmox开NAT和ipv6小鸡</span></a></div><div class="next-post pull-right"><a href="/2018/04/07/canvas-fingerprint的使用/"><span>Canvas Fingerprint的使用</span><i class="fa fa-chevron-right"></i></a></div></nav><div class="post-adv"><script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><!-- bycx2 --><ins class="adsbygoogle"     style="display:inline-block;width:970px;height:90px"     data-ad-client="ca-pub-2949782691473536" data-ad-slot="8343677772"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div><div id="gitment-container"></div><script>var gitment = new Gitment({
+  id: window.location.pathname,
+  id: '{{ page.date }}',
+  owner: 'tusik',
+  repo: 'by.cxcomment',
+  oauth: {
+    client_id: '1463b20aeb2e597209cb',
+    client_secret: '124cb23d4f7b9f568ae2b66b401a6fcf692c2790'
+  }
+})
+gitment.render('gitment-container')</script></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2015 - 2018 By Image</div><div class="framework-info"><span>驱动 - </span><a href="http://hexo.io"><span>Hexo</span></a><span class="footer-separator">|</span><span>主题 - </span><a href="https://github.com/Molunerfinn/hexo-theme-melody"><span>Melody</span></a></div><div class="busuanzi"><script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file-o"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="/js/third-party/anime.min.js"></script><script src="/js/third-party/jquery.min.js"></script><script src="/js/third-party/jquery.fancybox.min.js"></script><script src="/js/third-party/velocity.min.js"></script><script src="/js/third-party/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.5.2"></script><script src="/js/fancybox.js?version=1.5.2"></script><script src="/js/sidebar.js?version=1.5.2"></script><script src="/js/copy.js?version=1.5.2"></script><script src="/js/fireworks.js?version=1.5.2"></script><script src="/js/transition.js?version=1.5.2"></script><script src="/js/scroll.js?version=1.5.2"></script><script src="/js/head.js?version=1.5.2"></script></body></html>

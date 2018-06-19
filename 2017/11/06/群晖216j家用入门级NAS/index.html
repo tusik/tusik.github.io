@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="群晖216j家用入门级NAS"><meta name="keywords" content="NAS"><meta name="author" content="Image,undefined"><meta name="copyright" content="Image"><title>群晖216j家用入门级NAS | 编译程序</title><link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.min.css?version=1.5.2"><link rel="stylesheet" type="text/css" href="https://unpkg.com/gitment@latest/style/default.css"><script src="https://unpkg.com/gitment@latest/dist/gitment.browser.js"></script><script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-102495079-1', 'auto');
+ga('send', 'pageview');</script><script>var GLOBAL = { 
+  root: '/',
+  algolia: undefined,
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  localSearch: {"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}"},"path":"search.xml"}
+} </script></head><body><canvas class="fireworks"></canvas><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar"><div class="toggle-sidebar-info text-center"><span data-toggle="切换文章详情">切换站点概览</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#硬件"><span class="toc-number">1.</span> <span class="toc-text">硬件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#软件"><span class="toc-number">2.</span> <span class="toc-text">软件</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Download-Station套件"><span class="toc-number">2.1.</span> <span class="toc-text">Download Station套件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Video-Station"><span class="toc-number">2.2.</span> <span class="toc-text">Video Station</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Office-套件"><span class="toc-number">2.3.</span> <span class="toc-text">Office 套件</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#性能"><span class="toc-number">3.</span> <span class="toc-text">性能</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结"><span class="toc-number">4.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="http://z4a.net/images/2018/04/06/kamuyi.jpg"></div><div class="author-info__name text-center">Image</div><div class="author-info__description text-center">程序员生活频道</div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">文章</span><span class="pull-right">36</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">标签</span><span class="pull-right">27</span></a><a class="author-info-articles__categories article-meta" href="/categories"><span class="pull-left">分类</span><span class="pull-right">7</span></a></div><hr><div class="author-info-links"><div class="author-info-links__title text-center">Links</div><a class="author-info-links__name text-center" href="https://blog.kkkkkkk.bid" target="_blank">安东尼</a><a class="author-info-links__name text-center" href="https://eqblog.com" target="_blank">EQblog</a><a class="author-info-links__name text-center" href="https://print.moe" target="_blank">Print.moe</a><a class="author-info-links__name text-center" href="https://teduis.com/" target="_blank">Jiuling's Blog</a></div></div></div><div id="content-outer"><div id="top-container" style="background-image: url(https://print.moe/api.jpg?id=241520)"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">编译程序</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus"><a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a></span></div><div id="post-info"><div id="post-title">群晖216j家用入门级NAS</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2017-11-06</time></div></div></div><div class="layout" id="content-inner"><article id="post"><div id="post-content"><p>前年从淘宝那儿30块买了个MBL的壳，又买了块1T的蓝盘装进去就凑活着当块NAS用了。然而MBL只有100M的网卡，也没有USB也不能WOL，还是PowerPC的构架，连内网穿透都没有合适的方法。</p>
+<p>很久以前买个Atom折腾过黑裙，但是那是家里的情况，随便找个角落就可以塞进去，然而在学校就没有那么多空地塞一个大机箱了，还是直接买个白裙算了，还带内网穿透。</p>
+<p>于是这几天心魔作祟，趁群晖216j售价降为999的时候买了一台。</p>
+<a id="more"></a>
+<h3 id="硬件"><a href="#硬件" class="headerlink" title="硬件"></a>硬件</h3><p><img src="/2017/11/06/群晖216j家用入门级NAS/./IMG_20171105_112242.jpg?w=600&amp;r=100" alt=""></p>
+<p>J系列属于群晖的低性能系列，再往下还有se，往上就是play[value系列]如果需要NAS解码播放的话还是买Value系列以上的版本比较好。</p>
+<p>由于我没有苹果设备<del>穷</del>，再加上笔记本都是千兆的，所以直接本地解码就够了。</p>
+<p><img src="/2017/11/06/群晖216j家用入门级NAS/./IMG_20171105_112301.jpg" alt=""></p>
+<p>背面参数信息、规格</p>
+<ul>
+<li>Marvell Armada 385 88F6820 1GHz 双核ARM构架</li>
+<li>512MB DDR3</li>
+<li>千兆RJ45</li>
+<li>USB3.0*2</li>
+<li>SATA*2</li>
+<li>12VDC input</li>
+</ul>
+<p>光从参数上就可以看出是很“节能”的那种。</p>
+<p>除了本体以外还带一个超五类网线+DC电源+一堆螺丝。所有接口都在菊花那里。</p>
+<p><img src="/2017/11/06/群晖216j家用入门级NAS/./IMG_20171105_114521.jpg" alt=""><br>内部就这样，直接插进去上好螺丝开机装系统一步到位，果然还是白裙比较好，厂商都帮你做好了。</p>
+<p>店家骗我能直接上2.5的硬盘，然而并不能，没有2.5的螺丝扣，要上2.5得转接，不转接的话直接上2.5容易掉。</p>
+<h3 id="软件"><a href="#软件" class="headerlink" title="软件"></a>软件</h3><p>群晖之所以有那么多人搞黑群就是为了DSM，所以才说买NAS送系统，折腾过很多的NAS方案，总而言之还是群晖的最好用最省心。</p>
+<p>群晖的一整套套件还是很方便的，除了客户端每个套件都得装个App，好几年了还是没有整合到一个App里去。</p>
+<h4 id="Download-Station套件"><a href="#Download-Station套件" class="headerlink" title="Download Station套件"></a>Download Station套件</h4><p><img src="/2017/11/06/群晖216j家用入门级NAS/./20171106140430.png" alt=""><br>不过我的主要用途还是挂PT拉，开着管理面板下PT平均cpu使用率再20-40%之间，如果关掉面板的话应该会再10-30%之间。</p>
+<h4 id="Video-Station"><a href="#Video-Station" class="headerlink" title="Video Station"></a>Video Station</h4><p><img src="/2017/11/06/群晖216j家用入门级NAS/./20171106140723.png" alt=""><br>可以自动获取目录下的视频资源并自动匹配封面和介绍（纪录片好像不能匹配），自动搜索字幕（我反正是搜不出），并且可以在线观看，如果无法解码DTS音轨<a href="https://guillaume.smaha.net/syno/" target="_blank" rel="noopener">https://guillaume.smaha.net/syno/</a> 需要到这里下载对应的音频解码套件</p>
+<h4 id="Office-套件"><a href="#Office-套件" class="headerlink" title="Office 套件"></a>Office 套件</h4><p>DSM6.0新推出的功能，协同工作的套件。目前还是只能word和excel，而且word还没有分页。。。所有的内容都在一页里面。。我都不知道我在哪一页。不过这个倒是可以代替linux下的一堆office软件，至少他是能和微软的office相互兼容的，比开源的那些不知道高到哪里去</p>
+<h3 id="性能"><a href="#性能" class="headerlink" title="性能"></a>性能</h3><p>1GHz的Arm，性能注定高不到哪里去（不知道能不能超频）。不过能够通过VS在线观看，不过由于网页版用的是<vedio>标签，所以并不能看太多格式，所以电脑上还是使用smb用本地的播放器打开吧。</vedio></p>
+<p>很多的操作都会让其CPU100%不过也不会有太大的影响，开机20小时RAM也不会超过60%</p>
+<p>风扇使用静音模式（不会停转，最低转速），CPU40℃，硬盘30℃。之前这块硬盘放在MBL的肚子里，散热全靠浪，拿出来简直烫手，估计表面温度有60℃。</p>
+<p>网络读写，不知道是什么问题，写入在50-70M左右跳动，CPU100%，读取60M-80M跳动。也许网络设备和笔记本有些问题。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>作为入门款的NAS，只用来PT/BT和本地解码的播放视频，这款是绝对能够胜任的，不过如果你缺钱，可以选择Atom方案的黑群晖，如果你有钱，那可以直接上x86的白群晖。总而言之，要求低的人可以选这款群晖。有钱人随意咯。</p>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">Image</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://by.cx/2017/11/06/群晖216j家用入门级NAS/">https://by.cx/2017/11/06/群晖216j家用入门级NAS/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://by.cx" target="_blank">编译程序</a>！</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/NAS/">NAS</a></div><nav id="pagination"><div class="prev-post pull-left"><a href="/2017/11/16/Lombok-intro/"><i class="fa fa-chevron-left">  </i><span>Lombok-提高Java编写效率</span></a></div><div class="next-post pull-right"><a href="/2017/10/26/hexo搬家/"><span>hexo搬家</span><i class="fa fa-chevron-right"></i></a></div></nav><div class="post-adv"><script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script><!-- bycx2 --><ins class="adsbygoogle"     style="display:inline-block;width:970px;height:90px"     data-ad-client="ca-pub-2949782691473536" data-ad-slot="8343677772"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div><div id="gitment-container"></div><script>var gitment = new Gitment({
+  id: window.location.pathname,
+  id: '{{ page.date }}',
+  owner: 'tusik',
+  repo: 'by.cxcomment',
+  oauth: {
+    client_id: '1463b20aeb2e597209cb',
+    client_secret: '124cb23d4f7b9f568ae2b66b401a6fcf692c2790'
+  }
+})
+gitment.render('gitment-container')</script></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2015 - 2018 By Image</div><div class="framework-info"><span>驱动 - </span><a href="http://hexo.io"><span>Hexo</span></a><span class="footer-separator">|</span><span>主题 - </span><a href="https://github.com/Molunerfinn/hexo-theme-melody"><span>Melody</span></a></div><div class="busuanzi"><script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file-o"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="/js/third-party/anime.min.js"></script><script src="/js/third-party/jquery.min.js"></script><script src="/js/third-party/jquery.fancybox.min.js"></script><script src="/js/third-party/velocity.min.js"></script><script src="/js/third-party/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.5.2"></script><script src="/js/fancybox.js?version=1.5.2"></script><script src="/js/sidebar.js?version=1.5.2"></script><script src="/js/copy.js?version=1.5.2"></script><script src="/js/fireworks.js?version=1.5.2"></script><script src="/js/transition.js?version=1.5.2"></script><script src="/js/scroll.js?version=1.5.2"></script><script src="/js/head.js?version=1.5.2"></script></body></html>

@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search> 
+  
+    
+    <entry>
+      <title>C# Mysql连接池</title>
+      <link href="/2018/05/12/C-Mysql%E8%BF%9E%E6%8E%A5%E6%B1%A0/"/>
+      <url>/2018/05/12/C-Mysql%E8%BF%9E%E6%8E%A5%E6%B1%A0/</url>
+      <content type="html"><![CDATA[]]></content>
+      
+      
+    </entry>
+    
+    <entry>
+      <title>hetzner安装proxmox开NAT和ipv6小鸡</title>
+      <link href="/2018/05/10/hetzner-proxmox/"/>
+      <url>/2018/05/10/hetzner-proxmox/</url>
+      <content type="html"><![CDATA[<p>虽然说使用Windows用Hyper-v开小鸡全程都是GUI很方便，但是Hyper-v并不提供dhcp等服务，所以在windows下管理小鸡反而难以操作。</p><p>所以打算重新安装proxmox后使用NAT v4+ipv6和纯v4ip来创建小鸡，web访问服务可以使用套上CF的CDN来使用V6回源，节省0.84欧的ip费用，而且购买单独ip貌似是不能超过6个？</p><h2 id="一、安装proxmox"><a href="#一、安装proxmox" class="headerlink" title="一、安装proxmox"></a>一、安装proxmox</h2><p>进入救援系统使用<code>installimage</code>命令选择Other，在选择proxmox*stretch这是在Debian9上安装proxmox5的脚本。不过Hetzner并不提供技术支持，所以安装完后需要进行一些修改。</p><p>安装的配置脚本需要进行一些修改</p><p><img src="https://z4a.net/images/2018/05/11/TIM20180510193502.png" alt="setting"></p><p>修改硬盘Raid方式，和宿主机hostname。如果不需要raid可以修改SWRAID为0.<br><a id="more"></a></p><p><img src="https://z4a.net/images/2018/05/11/TIM20180510193521.png" alt="setting1"></p><p>修改空间分配方式，我想要大部分空间到同一个目录下，所以我把/目录的容量修改为50G。按F10保存并进行自动安装。</p><p>安装完成进入httpss://ip:8006 输入救援系统的root账号和密码</p><h2 id="二、配置网络"><a href="#二、配置网络" class="headerlink" title="二、配置网络"></a>二、配置网络</h2><p>首先开启forward<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sysctl.d/99-hetzner.conf</span><br><span class="line"><span class="comment">#加入</span></span><br><span class="line">net.ipv4.ip_forward=1</span><br><span class="line">net.ipv6.conf.all.forwarding=1</span><br></pre></td></tr></table></figure></p><p>由于Hetzner并不提供技术支持，所以安装后并为创建网桥，所以需要手动创建。</p><p><img src="https://z4a.net/images/2018/05/11/TIM20180510193918.png" alt="create Bridge"></p><p>把默认网卡（我的是enp3s0）的所有配置都写到新的网桥vmbr0中，并删除默认网卡的配置,设置桥接端口为<code>enp3s0</code></p><h3 id="创建NAT用网桥"><a href="#创建NAT用网桥" class="headerlink" title="创建NAT用网桥"></a>创建NAT用网桥</h3><p>上面创建的vmbr0是直接连接到外部网络的网桥，下面要创建NAT专用的网桥</p><p>创建vmbr1,配置如下</p><p><img src="https://z4a.net/images/2018/05/11/TIM20180511155341.png" alt="vmbr1"></p><p>ipv6的地址填写vmbr0上设置的地址。</p><p>全部设置如下</p><p><img src="https://z4a.net/images/2018/05/11/TIM20180511155541.png" alt="network setting"></p><p>保存完毕后重启主机后就会生效</p><h2 id="三、创建小鸡"><a href="#三、创建小鸡" class="headerlink" title="三、创建小鸡"></a>三、创建小鸡</h2><p>ISO镜像可以从Web面板上传,proxmox也提供一些模板不过都是lxc的</p><p><img src="https://z4a.net/images/2018/05/11/TIM20180511155935.png" alt="ISO template"></p><p>也可以直接进入<code>/var/lib/vz/template/iso/</code>上传到这里，也可以进入Web管理界面创建一个新的目录拿来放iso也行</p><h3 id="创建独立IP小鸡"><a href="#创建独立IP小鸡" class="headerlink" title="创建独立IP小鸡"></a>创建独立IP小鸡</h3><p>购买完ip后点击ip旁边的<code>reset separate MAC</code>按钮就可以生成一个mac地址，可以直接dhcp设置ipv4</p><p>点击右上角创建虚拟机就可以创建KVM机，过程没啥要注意的除了在网络那里选择vmbr0并填入mac，启动之后就可以直接使用了</p><h3 id="创建NAT-V6小鸡"><a href="#创建NAT-V6小鸡" class="headerlink" title="创建NAT+V6小鸡"></a>创建NAT+V6小鸡</h3><p>创建小鸡，选择vmbr1网卡</p><p>主机中输入iptables命令，将vmbr1的IP段流量通过vmbr0跳转到外网去，这样小鸡就能访问外网</p><p><code>iptables -t nat -A POSTROUTING -s &#39;192.168.1.0/24&#39; -o vmbr0 -j MASQUERADE</code><br>安装过程需要手动配置ip信息</p><p>安装完小鸡后在硬件设置中添加新的网卡连接到vmbr0上，并在小鸡中配置v6的ip信息,并且运行以下命令，小鸡就能通过新的网卡访问ipv6</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ip -f inet6 neigh add proxy  2a01:4f8:xxx:xxx::vmbr0IP dev vmbr0</span><br><span class="line">ip -f inet6 neigh add proxy 2a01:4f8:xxx:xxx::小鸡ip dev enp3s0</span><br><span class="line">ip -f inet6 route add 2a01:4f8:xxx:xxx::小鸡ip dev vmbr0</span><br></pre></td></tr></table></figure><p>如果想要暴露端口使用<br><code>iptables -t nat -A PREROUTING -i vmbr0 -p tcp --dport 8088 -j DNAT --to 192.168.1.2:80</code></p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> hetzner </tag>
+            
+            <tag> ipv6 </tag>
+            
+            <tag> proxmox </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>浏览者信息收集</title>
+      <link href="/2018/04/20/%E6%B5%8F%E8%A7%88%E8%80%85%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/"/>
+      <url>/2018/04/20/%E6%B5%8F%E8%A7%88%E8%80%85%E4%BF%A1%E6%81%AF%E6%94%B6%E9%9B%86/</url>
+      <content type="html"><![CDATA[<p>仅仅记录投票票数确实有些无聊，所以需要适当的收集一些信息在进行统计就能得到一些更有趣的图表。</p><h2 id="Request"><a href="#Request" class="headerlink" title="Request"></a>Request</h2><p>以最基础的<code>Request header</code>入手。</p><blockquote><p>HTTP 消息头允许客户端和服务器通过 request和 response传递附加信息。一个请求头由不区分大小写的名称后跟一个冒号“：”，冒号后跟具体的值（不带换行符）组成。该值前面的引导空白会被忽略。</p></blockquote><p>每次的HTTP连接中必定会有header内容，因此从此很方便的获取访客的基本信息。</p><p>header支持的标准字段有很多，在此就仅列出一些拥有有效信息的字段：</p><table><thead><tr><th>字段名</th><th>描述</th><th>示例</th><th>状态</th></tr></thead><tbody><tr><td>Accept-Charset</td><td>能够接受的字符集</td><td>Accept-Charset: utf-8</td><td>常设</td></tr><tr><td>Accept-Encoding</td><td>能够接受的编码方式列表。</td><td>Accept-Encoding: gzip, deflate</td><td>常设</td></tr><tr><td>Accept-Language</td><td>能够接受的回应内容的自然语言列表。</td><td>Accept-Language: en-US</td><td>常设</td></tr><tr><td>Referer</td><td>來源頁面</td><td>Referer: <a href="http://en.wikipedia.org/wiki/Main_Page" target="_blank" rel="noopener">http://en.wikipedia.org/wiki/Main_Page</a></td><td>常設</td></tr><tr><td>User-Agent</td><td>浏览器的浏览器身份标识字符串</td><td>Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.79 Safari/537.36 Maxthon/5.2.1.1000</td><td>常設</td></tr></tbody></table><p>想要查看更多内容查看<a href="https://zh.wikipedia.org/wiki/HTTP%E5%A4%B4%E5%AD%97%E6%AE%B5#请求字段" target="_blank" rel="noopener">Wikipedia</a></p><p>以上就是比较常用的含有有效内容的字段。</p><p>不过Request header中包含的信息实在是少的可怜，所以需要使用其他方法来获取更多的信息。<br><a id="more"></a></p><h2 id="fingerprintjs2"><a href="#fingerprintjs2" class="headerlink" title="fingerprintjs2"></a>fingerprintjs2</h2><p>上一篇文章提到的fingerprintjs没想到刚发布几天结果就推出了二代，所以在这里重新提一下。</p><p>并且除了Request header以外我们还可以学习fingerprintjs是怎么获取访客信息的。</p><p>在Readme中我们可以看到信息来源</p><blockquote><ol><li>UserAgent</li><li>Language</li><li>Color Depth</li><li>Screen Resolution</li><li>Timezone</li><li>Has session storage or not</li><li>Has local storage or not</li><li>Has indexed DB</li><li>Has IE specific ‘AddBehavior’</li><li>Has open DB</li><li>CPU class</li><li>Platform</li><li>DoNotTrack or not</li><li>Full list of installed fonts (maintaining their order, which  increases the entropy), implemented with Flash.</li><li>A list of installed fonts, detected with JS/CSS (side-channel technique) - can detect up to 500 installed fonts without flash</li><li>Canvas fingerprinting</li><li>WebGL fingerprinting</li><li>Plugins (IE included)</li><li>Is AdBlock installed or not</li><li>Has the user tampered with its languages 1</li><li>Has the user tampered with its screen resolution 1</li><li>Has the user tampered with its OS 1</li><li>Has the user tampered with its browser 1</li><li>Touch screen detection and capabilities</li><li>Pixel Ratio</li><li>System’s total number of logical processors available to the user agent.</li><li>Device memory</li></ol></blockquote><p>是的，我们可以直接引用fingerprint2.js后调用他的函数就可以直接获取了XD</p><h2 id="使用及结果"><a href="#使用及结果" class="headerlink" title="使用及结果"></a>使用及结果</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">new</span> Fingerprint2().get(<span class="function"><span class="keyword">function</span>(<span class="params">result, components</span>) </span>&#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result) <span class="comment">// a hash, representing your device fingerprint</span></span><br><span class="line">  <span class="built_in">console</span>.log(components) <span class="comment">// an array of FP components</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure><p><img src="https://z4a.net/images/2018/04/20/20180420211902.png" alt="output"><br>完美⭐~</p>]]></content>
+      
+      <categories>
+          
+          <category> 程序 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 软件开发 </tag>
+            
+            <tag> 信息收集 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Canvas Fingerprint的使用</title>
+      <link href="/2018/04/07/canvas-fingerprint%E7%9A%84%E4%BD%BF%E7%94%A8/"/>
+      <url>/2018/04/07/canvas-fingerprint%E7%9A%84%E4%BD%BF%E7%94%A8/</url>
+      <content type="html"><![CDATA[<p>最近又又又买了一个新的域名，所以打算在这域名基础上写一个匿名投票用的统计系统（捡鼠标垫买电脑系列）用于一项长期的数据统计（不知道收集到多少数据）。</p><h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>既然是投票系统，那么就必须对防止刷票做处理。<br>记得N年以前有个网站投票貌似是关于360的文章，底部有个投票并没有做处理，所以我光靠按键精灵就刷了几千票，不过十几分钟之后貌似被发现了。</p><p>所以关于防刷票我能写的就有以下几种方案：</p><ol><li>登陆注册——极大的增加投票所需要的成本，但是又由于成本导致真实用户被拒之门外。</li><li>Cookie标记——少量的成本，也容易被清理。</li><li>ip限制——没有成本，但是由于NAT的网络环境存在导致无法实行。</li><li>ip+UA限制——没有成本，但是可能会出现UA重复的情况。</li><li>Canvas Fingerprint——没有成本，极小的重复可能，但是和4一样更换浏览器就可以突破限制。</li></ol><p>综上所述似乎Canvas Fingerprint是一个比较合理的选择。</p><h2 id="Canvas-Fingerprint"><a href="#Canvas-Fingerprint" class="headerlink" title="Canvas Fingerprint"></a>Canvas Fingerprint</h2><p>Canvas指纹的原理是先使用canvas绘制一张图像，再使用<code>canvas.toDataURL()</code>方法可以获得图像的Base64格式编码，所得的最后一块32位长度的内容就是可以用于识别用户的crc校验码<br><a id="more"></a><br>并且由于Canvas的引入，可以有效的抑制大部分直接对投票接口操作的请求，可以区分机器人和真实用户（不过我还是觉得图形码更有效）</p><p>例如使用python尝试获取crc校验码</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> bs4 <span class="keyword">import</span> BeautifulSoup</span><br><span class="line"><span class="keyword">import</span> requests</span><br><span class="line">html = requests.get(<span class="string">"https://browserleaks.com/canvas"</span>).text</span><br><span class="line">soup = BeautifulSoup(html,<span class="string">"html5lib"</span>)</span><br><span class="line">print(soup.find(id=<span class="string">"crc"</span>).get_text())</span><br></pre></td></tr></table></figure><p>输出结果为n/a</p><p>虽然可以使用其当作用户的校验码，但是在同一款浏览器下还是很容易出现重复的，所以需要引入外部变量</p><p><a href="https://github.com/Valve/fingerprintJS" target="_blank" rel="noopener">fingerprintJS</a>就是优化后的canvas fingerprint项目，国内有人进行过<a href="https://docs.zoho.com/sheet/open/08m2ga1cf6790c0eb4d8c8f7e54ca6ddb9b72/sheets/%E5%B7%A5%E4%BD%9C%E8%A1%A8%201/ranges/C3" target="_blank" rel="noopener">测试</a>，经过优化的canvas指纹的精确度大幅提升。官网声称正确率可以达到94%</p><h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>引入js<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> fingerprint = <span class="keyword">new</span> Fingerprint().get();</span><br></pre></td></tr></table></figure></p><p>如果你想使用canvas指纹则带入参数<code>canvas: true</code><br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> fingerprint = <span class="keyword">new</span> Fingerprint(&#123;<span class="attr">canvas</span>: <span class="literal">true</span>&#125;).get();</span><br></pre></td></tr></table></figure></p><p>如果想使用基于屏幕分辨率的计算方式则带入参数<code>screen_resolution: true</code><br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> fingerprint = <span class="keyword">new</span> Fingerprint(&#123;<span class="attr">screen_resolution</span>: <span class="literal">true</span>&#125;).get();</span><br></pre></td></tr></table></figure></p>]]></content>
+      
+      <categories>
+          
+          <category> 程序 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> js </tag>
+            
+            <tag> 软件开发 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Online 独立服务器设置 ipfailover</title>
+      <link href="/2017/12/27/Online-%E7%8B%AC%E7%AB%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AE%BE%E7%BD%AE-ipfailover/"/>
+      <url>/2017/12/27/Online-%E7%8B%AC%E7%AB%8B%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%AE%BE%E7%BD%AE-ipfailover/</url>
+      <content type="html"><![CDATA[<p>从别人那里收来一台20o的母鸡E3-1230 V3+32G+2T+1G，这性价比简直是无敌。虽然来说是欧洲机房，从美国绕过去，但是丢包率几乎为0。上次买的25刀一个月的配置没有他一半，丢包率上天。</p><p>但是不知出于什么原因，自带的ip被mt（我是纯洁的目的）封了，而且我也想拿来做其他程序的后端，所以会有两种方案</p><a id="more"></a><p>由于我需要windows做宿主，linux用来做网站后端所以比较方便。而且我也没做过全虚拟化，也不知道性能如何，所以还是用hyperv做虚拟开linux小鸡比较好。</p><p>1.Nat+端口映射<br>2.独立ip</p><p>方案1可以虚拟linux使用宿主的ip，只需要将需要的端口映射出来，如22、80、8080之类的，反正windows用不着。而且在这种方案下可以使用docker是比较成熟的方案，不过docker for windows只支持windows server 2016 和 win10以上。</p><p>方案2就是用hyperv开个小鸡将ip绑定给小鸡，就是有点贵，1.99欧一个月2.99欧设置费。这种方案可以暴露出小鸡的所有端口，直接可以由小鸡控制，不需要进入宿主操作。</p><p>所以我就买了个failover ip，好贵啊。</p><p><img src="/2017/12/27/Online-独立服务器设置-ipfailover/./20171227172905.png" alt=""><br>进入左侧failover菜单，将新的ip拖入你的机器内，然后update。</p><p><img src="/2017/12/27/Online-独立服务器设置-ipfailover/./20171227172523.png" alt=""><br>完成后可以在服务器详情页面查看，这时需要对这个ip添加虚拟mac地址。</p><p>然后把小鸡的mac地址修改成生成的mac地址，使用dhcp就能自动获取ip。</p><p>failover ip的计费方式好像时从订购时计时，到一个月为止再生成invoice。</p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> online </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Lombok-提高Java编写效率</title>
+      <link href="/2017/11/16/Lombok-intro/"/>
+      <url>/2017/11/16/Lombok-intro/</url>
+      <content type="html"><![CDATA[<p>说到Java，其一个明显的特征就是实体类中会有大量的get，set方法。虽然说现在IDE都可以一键生成get，set，construct方法，但是每个类都得花个一分半分的时间。Lombok通过注释的方式帮助我们简化臃肿的Java代码。</p><p>（虽然通过Lombok在Java文件中以注释方式代替，但是通过编译器编译后会自动生成方法，因此不会影响代码运行效率）</p><p>项目主页：<a href="https://projectlombok.org" target="_blank" rel="noopener">https://projectlombok.org</a></p><a id="more"></a><h2 id="一、-Lombok安装"><a href="#一、-Lombok安装" class="headerlink" title="一、 Lombok安装"></a>一、 Lombok安装</h2><p>IDE需要安装插件，不然IDE会显示找不到方法（虽然能正常编译运行）</p><p>IDEA下&gt;File&gt;Setting&gt;Plugins&gt;搜索Lombok plugin，安装后IDE要求重启。重启后并导入Lombok包，就可以正常使用了。</p><h2 id="二、-使用"><a href="#二、-使用" class="headerlink" title="二、 使用"></a>二、 使用</h2><p><a href="http://jnb.ociweb.com/jnb/jnbJan2010.html" target="_blank" rel="noopener">http://jnb.ociweb.com/jnb/jnbJan2010.html</a></p><p><a href="https://projectlombok.org/features/all" target="_blank" rel="noopener">https://projectlombok.org/features/all</a></p><p>在官方的介绍文档中已经很详细的讲解了使用方法和Example，所以只讲常用的。</p><h3 id="Getter-and-Setter"><a href="#Getter-and-Setter" class="headerlink" title="@Getter and @Setter"></a>@Getter and @Setter</h3><p><code>@Getter</code>和<code>@Setter</code>注释能为属性分别的生成getter和setter方法。在生成返回Boolean数据的时候依照惯例将以<code>isFoo</code>来代替<code>getFoo</code>函数名。需要注意如果Class中使用Lombok注释方法的字段属于一个相同名的getter或setter，不管参数和返回类型，将不会产生对应的getter，setter方法。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Getter</span> <span class="meta">@Setter</span> <span class="keyword">private</span> <span class="keyword">boolean</span> employed = <span class="keyword">true</span>;</span><br><span class="line"><span class="meta">@Setter</span>(AccessLevel.PROTECTED) <span class="keyword">private</span> String name;</span><br></pre></td></tr></table></figure></p><p>以上代码等同于</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">boolean</span> employed = <span class="keyword">true</span>;</span><br><span class="line"><span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">isEmployed</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> employed;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setEmployed</span><span class="params">(<span class="keyword">final</span> <span class="keyword">boolean</span> employed)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.employed = employed;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">setName</span><span class="params">(<span class="keyword">final</span> String name)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.name = name;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h3 id="Data"><a href="#Data" class="headerlink" title="@Data"></a>@Data</h3><p><code>@Data</code>注释似乎是最常用的。它结合了<code>@ToString</code>,<code>@EqualsAndHasCode</code>,<code>@Getter</code>,<code>@Setter</code>注释。本质上来讲使用<code>@Data</code>注释相当于使用了默认的<code>@ToString</code>和<code>@EqualsAndHasCode</code>以及给每个属性都加上了<code>@Getter</code>和<code>@Setter</code>。给一个Class加上<code>@Data</code>的注释同时加上了Lombok的构造方法触发器，这将会加上一个public的构造器并加上<code>@NonNull</code>或<code>final</code>的字段作为参数。折提供了Plain Old Java Object (POJO)所需要的一切。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Data</span>(staticConstructor=<span class="string">"of"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Company</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Person founder;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span> List&lt;Person&gt; employees;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>等同于</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Company</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> Person founder;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="keyword">private</span> List&lt;Person&gt; employees;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Company</span><span class="params">(<span class="keyword">final</span> Person founder)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.founder = founder;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Company <span class="title">of</span><span class="params">(<span class="keyword">final</span> Person founder)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Company(founder);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Person <span class="title">getFounder</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> founder;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">getName</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> name;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setName</span><span class="params">(<span class="keyword">final</span> String name)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.name = name;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> List&lt;Person&gt; <span class="title">getEmployees</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> employees;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setEmployees</span><span class="params">(<span class="keyword">final</span> List&lt;Person&gt; employees)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.employees = employees;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@java</span>.lang.Override</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">equals</span><span class="params">(<span class="keyword">final</span> java.lang.Object o)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (o == <span class="keyword">this</span>) <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">if</span> (o == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">if</span> (o.getClass() != <span class="keyword">this</span>.getClass()) <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">final</span> Company other = (Company)o;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.founder == <span class="keyword">null</span> ? other.founder != <span class="keyword">null</span> : !<span class="keyword">this</span>.founder.equals(other.founder)) <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.name == <span class="keyword">null</span> ? other.name != <span class="keyword">null</span> : !<span class="keyword">this</span>.name.equals(other.name)) <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.employees == <span class="keyword">null</span> ? other.employees != <span class="keyword">null</span> : !<span class="keyword">this</span>.employees.equals(other.employees)) <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@java</span>.lang.Override</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">hashCode</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> PRIME = <span class="number">31</span>;</span><br><span class="line">        <span class="keyword">int</span> result = <span class="number">1</span>;</span><br><span class="line">        result = result * PRIME + (<span class="keyword">this</span>.founder == <span class="keyword">null</span> ? <span class="number">0</span> : <span class="keyword">this</span>.founder.hashCode());</span><br><span class="line">        result = result * PRIME + (<span class="keyword">this</span>.name == <span class="keyword">null</span> ? <span class="number">0</span> : <span class="keyword">this</span>.name.hashCode());</span><br><span class="line">        result = result * PRIME + (<span class="keyword">this</span>.employees == <span class="keyword">null</span> ? <span class="number">0</span> : <span class="keyword">this</span>.employees.hashCode());</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="meta">@java</span>.lang.Override</span><br><span class="line">    <span class="keyword">public</span> java.lang.<span class="function">String <span class="title">toString</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"Company(founder="</span> + founder + <span class="string">", name="</span> + name + <span class="string">", employees="</span> + employees + <span class="string">")"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
+        <tags>
+            
+            <tag> Java </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>群晖216j家用入门级NAS</title>
+      <link href="/2017/11/06/%E7%BE%A4%E6%99%96216j%E5%AE%B6%E7%94%A8%E5%85%A5%E9%97%A8%E7%BA%A7NAS/"/>
+      <url>/2017/11/06/%E7%BE%A4%E6%99%96216j%E5%AE%B6%E7%94%A8%E5%85%A5%E9%97%A8%E7%BA%A7NAS/</url>
+      <content type="html"><![CDATA[<p>前年从淘宝那儿30块买了个MBL的壳，又买了块1T的蓝盘装进去就凑活着当块NAS用了。然而MBL只有100M的网卡，也没有USB也不能WOL，还是PowerPC的构架，连内网穿透都没有合适的方法。</p><p>很久以前买个Atom折腾过黑裙，但是那是家里的情况，随便找个角落就可以塞进去，然而在学校就没有那么多空地塞一个大机箱了，还是直接买个白裙算了，还带内网穿透。</p><p>于是这几天心魔作祟，趁群晖216j售价降为999的时候买了一台。</p><a id="more"></a><h3 id="硬件"><a href="#硬件" class="headerlink" title="硬件"></a>硬件</h3><p><img src="/2017/11/06/群晖216j家用入门级NAS/./IMG_20171105_112242.jpg?w=600&amp;r=100" alt=""></p><p>J系列属于群晖的低性能系列，再往下还有se，往上就是play[value系列]如果需要NAS解码播放的话还是买Value系列以上的版本比较好。</p><p>由于我没有苹果设备<del>穷</del>，再加上笔记本都是千兆的，所以直接本地解码就够了。</p><p><img src="/2017/11/06/群晖216j家用入门级NAS/./IMG_20171105_112301.jpg" alt=""></p><p>背面参数信息、规格</p><ul><li>Marvell Armada 385 88F6820 1GHz 双核ARM构架</li><li>512MB DDR3</li><li>千兆RJ45</li><li>USB3.0*2</li><li>SATA*2</li><li>12VDC input</li></ul><p>光从参数上就可以看出是很“节能”的那种。</p><p>除了本体以外还带一个超五类网线+DC电源+一堆螺丝。所有接口都在菊花那里。</p><p><img src="/2017/11/06/群晖216j家用入门级NAS/./IMG_20171105_114521.jpg" alt=""><br>内部就这样，直接插进去上好螺丝开机装系统一步到位，果然还是白裙比较好，厂商都帮你做好了。</p><p>店家骗我能直接上2.5的硬盘，然而并不能，没有2.5的螺丝扣，要上2.5得转接，不转接的话直接上2.5容易掉。</p><h3 id="软件"><a href="#软件" class="headerlink" title="软件"></a>软件</h3><p>群晖之所以有那么多人搞黑群就是为了DSM，所以才说买NAS送系统，折腾过很多的NAS方案，总而言之还是群晖的最好用最省心。</p><p>群晖的一整套套件还是很方便的，除了客户端每个套件都得装个App，好几年了还是没有整合到一个App里去。</p><h4 id="Download-Station套件"><a href="#Download-Station套件" class="headerlink" title="Download Station套件"></a>Download Station套件</h4><p><img src="/2017/11/06/群晖216j家用入门级NAS/./20171106140430.png" alt=""><br>不过我的主要用途还是挂PT拉，开着管理面板下PT平均cpu使用率再20-40%之间，如果关掉面板的话应该会再10-30%之间。</p><h4 id="Video-Station"><a href="#Video-Station" class="headerlink" title="Video Station"></a>Video Station</h4><p><img src="/2017/11/06/群晖216j家用入门级NAS/./20171106140723.png" alt=""><br>可以自动获取目录下的视频资源并自动匹配封面和介绍（纪录片好像不能匹配），自动搜索字幕（我反正是搜不出），并且可以在线观看，如果无法解码DTS音轨<a href="https://guillaume.smaha.net/syno/" target="_blank" rel="noopener">https://guillaume.smaha.net/syno/</a> 需要到这里下载对应的音频解码套件</p><h4 id="Office-套件"><a href="#Office-套件" class="headerlink" title="Office 套件"></a>Office 套件</h4><p>DSM6.0新推出的功能，协同工作的套件。目前还是只能word和excel，而且word还没有分页。。。所有的内容都在一页里面。。我都不知道我在哪一页。不过这个倒是可以代替linux下的一堆office软件，至少他是能和微软的office相互兼容的，比开源的那些不知道高到哪里去</p><h3 id="性能"><a href="#性能" class="headerlink" title="性能"></a>性能</h3><p>1GHz的Arm，性能注定高不到哪里去（不知道能不能超频）。不过能够通过VS在线观看，不过由于网页版用的是<vedio>标签，所以并不能看太多格式，所以电脑上还是使用smb用本地的播放器打开吧。</vedio></p><p>很多的操作都会让其CPU100%不过也不会有太大的影响，开机20小时RAM也不会超过60%</p><p>风扇使用静音模式（不会停转，最低转速），CPU40℃，硬盘30℃。之前这块硬盘放在MBL的肚子里，散热全靠浪，拿出来简直烫手，估计表面温度有60℃。</p><p>网络读写，不知道是什么问题，写入在50-70M左右跳动，CPU100%，读取60M-80M跳动。也许网络设备和笔记本有些问题。</p><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>作为入门款的NAS，只用来PT/BT和本地解码的播放视频，这款是绝对能够胜任的，不过如果你缺钱，可以选择Atom方案的黑群晖，如果你有钱，那可以直接上x86的白群晖。总而言之，要求低的人可以选这款群晖。有钱人随意咯。</p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> NAS </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>hexo搬家</title>
+      <link href="/2017/10/26/hexo%E6%90%AC%E5%AE%B6/"/>
+      <url>/2017/10/26/hexo%E6%90%AC%E5%AE%B6/</url>
+      <content type="html"><![CDATA[<h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>上课需要笔记本，而装了Deepin的笔记本耗电量明显比windows要高出很多（即使强制限制了频率），依然只有40-50分钟的续航（换不起）。Windows下可以开启双重节能模式在只编代码和稍微上上网的情况大概可以使用一个半小时，马马虎虎撑过两节课。</p><p>而且Linux的桌面环境小BUG不断，比如Deepin的控制面板无缘无故吃我CPU、外界显示器输出偶尔会切成其他分辨率，Manjaro KDE的关机会被其他程序给中断。当然也没有Office全家桶。</p><a id="more"></a><p>所以所有的环境都得迁移至Windows，好在Win10已有了Linux sub system（现在有ubuntu 和suse），一些东西可以不用装在windows上。</p><h3 id="迁移工作"><a href="#迁移工作" class="headerlink" title="迁移工作"></a>迁移工作</h3><hr><h4 id="基础环境"><a href="#基础环境" class="headerlink" title="基础环境"></a>基础环境</h4><p>在bash中可以完全以linux的操作方式，所以nodejs 和 hexo直接用apt和npm安装，不用考虑Windows的环境变量等问题。</p><h4 id="文件迁移"><a href="#文件迁移" class="headerlink" title="文件迁移"></a>文件迁移</h4><p>直接复制整个hexo的文件夹是不能直接使用的，所以需要先新建一个hexo站点<code>hexo init</code></p><p>然后从源文件夹复制</p><ol><li>package.json</li><li>_config.yml</li><li>source</li><li>themes</li></ol><p>这些文件到新的hexo目录，运行<code>npm install</code> 便会重新安装之前安装过的hexo插件，再次运行<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hexo g</span><br><span class="line">hexo s</span><br></pre></td></tr></table></figure></p><p>查看新的hexo站点是否能用</p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> hexo </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>递归查询树</title>
+      <link href="/2017/10/07/%E9%80%92%E5%BD%92%E6%9F%A5%E8%AF%A2%E6%A0%91/"/>
+      <url>/2017/10/07/%E9%80%92%E5%BD%92%E6%9F%A5%E8%AF%A2%E6%A0%91/</url>
+      <content type="html"><![CDATA[<p>由于帮老师做的项目里需要有栏目，所以必定也需要一系列子栏目，因此栏目在数据库中的储存结构就大概为</p><table><thead><tr><th></th><th style="text-align:center"></th></tr></thead><tbody><tr><td>id</td><td style="text-align:center"></td></tr><tr><td>title</td><td style="text-align:center">标题</td></tr><tr><td>uri</td><td style="text-align:center">uri</td></tr><tr><td>parentColumn</td><td style="text-align:center">父栏目id</td></tr></tbody></table><p>因为任何栏目都是和上下栏目关联的，如搜索某栏目的文章，那么子栏目下的文章也是要进行检索的。因此需要关于这一个栏目的完整的树。</p><p>主要思路就是查询子节点，若子节点存在再接着查询子节点。<br><a id="more"></a><br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Column实体类</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Column</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Integer cid;</span><br><span class="line">    <span class="keyword">private</span> String cname;</span><br><span class="line">    <span class="keyword">private</span> String uri;</span><br><span class="line">    <span class="keyword">private</span> String cdescribe;</span><br><span class="line">    <span class="keyword">private</span> Integer parentColumn=-<span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//ColumnEntity实体类</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ColumnEntity</span>  </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> Integer cid;</span><br><span class="line">    <span class="keyword">public</span> String cname;</span><br><span class="line">    <span class="keyword">public</span> String uri;</span><br><span class="line">    <span class="keyword">public</span> String describe;</span><br><span class="line">    <span class="keyword">public</span> List&lt;ColumnEntity&gt; child;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">select</span><span class="params">()</span></span>&#123;</span><br><span class="line">        System.out.print(JSON.toJSONString(getColumnChildEntity(<span class="number">58</span>)));</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> ColumnEntity <span class="title">getColumnChildEntity</span><span class="params">(Integer cid)</span></span>&#123;</span><br><span class="line">    <span class="comment">//查询id为cid的栏目</span></span><br><span class="line">    Colum column = columnService.selectColumnById(cid);</span><br><span class="line">    <span class="comment">//将Column转化为ColumnEntity</span></span><br><span class="line">    ColumnEntity columnEntity = <span class="keyword">new</span> ColumnEntity(column);</span><br><span class="line">    <span class="comment">//检索以此为父节点的节点</span></span><br><span class="line">    List&lt;Column&gt; list = columnService.selectColumnByParent(column.getCid());</span><br><span class="line"></span><br><span class="line">    List&lt;ColumnEntity&gt; entities = <span class="keyword">new</span> ArrayList&lt;ColumnEntity&gt;();</span><br><span class="line">    <span class="comment">//检索子节点的子节点</span></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> i=<span class="number">0</span> ;i&lt;list.size();i++)&#123;</span><br><span class="line">        <span class="comment">//调用getColumnChildEntity(）接着查询子节点</span></span><br><span class="line">        entities.add(getColumnChildEntity(list.get(i).getCid()));</span><br><span class="line">    &#125;</span><br><span class="line">    columnEntity.child=entities;</span><br><span class="line">    <span class="comment">//返回最终实体</span></span><br><span class="line">    <span class="keyword">return</span> columnEntity;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>以上是从当前节点向下查询所有的子节点，如果需要查询一整条树，则需要先查找到这树的根节点。稍稍修改就可以查询到整颗树。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">selectTree</span><span class="params">()</span></span>&#123;</span><br><span class="line">       Column column = columnService.selectColumnById(<span class="number">64</span>);</span><br><span class="line">       <span class="comment">//父节点不为空，则寻找父节点</span></span><br><span class="line">       <span class="keyword">while</span>(column.getParentColumn()!=-<span class="number">1</span>)&#123;</span><br><span class="line">           column=columnService.selectColumnById(column.getParentColumn());</span><br><span class="line">       &#125;</span><br><span class="line">       System.out.print(JSON.toJSONString(getColumnChildEntity(column.getCid())));</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure></p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> 编程 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Jenkins maven自动部署</title>
+      <link href="/2017/09/26/Jenkins%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2/"/>
+      <url>/2017/09/26/Jenkins%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2/</url>
+      <content type="html"><![CDATA[<p>吾选择的是Java的后台开发方向，目前只学到SSH和SSM的开发，之前虽然是在比赛中做了几个后台，但是都是使用的祖传代码，是上上届流传下来的代码。我也只能从这代码中进行修改，每次都得打包成war然后再发布到TOMCAT上，每次改代码都得手动部署真是麻烦。</p><p>后来听说jenkins可以做持续集成，于是把新的项目都改成maven部署过程就节省了大部分时间。<br><a id="more"></a></p><h2 id="安装jenkins"><a href="#安装jenkins" class="headerlink" title="安装jenkins"></a>安装jenkins</h2><blockquote><p>需要环境：jdk(如果是openjdk请换成oraclejdk，构建项目时需要ojdk)</p></blockquote><p>具体的安装方法<a href="https://jenkins.io/download/" target="_blank" rel="noopener">jenkins</a>的官网都有就不再复述（推荐非war方式使用，升级方便）</p><p>安装完后通过8080端口进入</p><p>如果要构建maven项目需要安装<code>Maven Integration plugin</code>插件，<code>Deploy to container Plugin</code>插件可以直接将war部署到TOMCAT</p><p>从系统管理-&gt;管理插件-&gt;可选插件安装</p><h2 id="Jenkins系统设置"><a href="#Jenkins系统设置" class="headerlink" title="Jenkins系统设置"></a>Jenkins系统设置</h2><p>进入系统管理-&gt;Global Tool Configuration,点击新增jdk，输入jdk根目录，也可以在线安装jdk，但是要输入oracle的账号密码</p><p><img src="/2017/09/26/Jenkins自动部署/20170926134903.png" alt=""></p><p>maven同理，不过maven用在线安装挺方便的</p><p><img src="/2017/09/26/Jenkins自动部署/20170926135148.png" alt=""></p><h2 id="创建一个maven项目"><a href="#创建一个maven项目" class="headerlink" title="创建一个maven项目"></a>创建一个maven项目</h2><p>左上角选择新建</p><p><img src="/2017/09/26/Jenkins自动部署/20170926133910.png" alt=""></p><p>输入项目名称并选择maven</p><p><img src="/2017/09/26/Jenkins自动部署/20170926134244.png" alt=""></p><p>我是使用了git储存代码，jenkins可以直接从git仓库pull代码。由于我是private项目，所以需要设置验证信息，点击Credentials的Add</p><p><img src="/2017/09/26/Jenkins自动部署/20170926134551.png" alt=""></p><p>设置账号密码保存</p><p>设置构建参数，在options中输入<code>clean package</code>每次构建的时候都会清理package</p><p><img src="/2017/09/26/Jenkins自动部署/20170926135514.png" alt=""></p><p>吾需要将其部署至tomcat，所以需要在构建后操作选项中设置Deploy war/ear to a container</p><p><img src="/2017/09/26/Jenkins自动部署/20170926140821.png" alt=""></p><p>由于只会生成一个war包，所以像这样配置就可以了，如果想要研究不同用法，可以研究研究jenkins构建时的目录结构</p><p>保存会后点击立即构建就可以进行构建了</p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> jenkins </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Print.moe update</title>
+      <link href="/2017/09/13/Print-moe-update/"/>
+      <url>/2017/09/13/Print-moe-update/</url>
+      <content type="html"><![CDATA[<p>由于很多人反馈图片加载很慢。。然而我这加载速度都在200kB/s到1mB/s左右，所以没啥感觉，为了防止过久的加载所以加入了size参数可以限制图片的大小，单位为byte。</p><p>而且为了尽量减少图片加载延迟，我开始尝试缓存konachan的所有图片（当然是S级的），总共180G，两年间增长了130G，互联网时代的发展趋势啊。</p><p>然而同步进网盘时由于文件过多导致有时候同步几个G就会卡主不动，索性修改了文件的储存方式，原本是将所有文件塞进一个文件夹，由于14W的数量。。</p><a id="more"></a><p>还是打算把文件以2500为step进行整理，然而上传了3天还是只上传了90多G，所以不打算这么玩了。</p><p>买了一个ks小鸡，虽然是ovh的，但是好在有三台鸡可以中转他，所以可以根据自己需求更换目标服务器。</p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> print.moe </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Centos 7安装Transmission</title>
+      <link href="/2017/09/06/Centos-7%E5%AE%89%E8%A3%85Transmission/"/>
+      <url>/2017/09/06/Centos-7%E5%AE%89%E8%A3%85Transmission/</url>
+      <content type="html"><![CDATA[<p>最近这几天Kimsufi放货频繁，ks1经常有货，估计是这上个月的续费率不高，导致有人删机器吧，有初装费的机器随便这么丢真的好吗XD。</p><p>KS的机器虽然是#世界#最便宜的独服，但是由于国内去ovh机房的线路都是绕地球，所以难受飞机场的侵犯。而且是独服就不会有爱折腾的邻居出现，而且我还有台不错的德国机可以拿来中转，对我来说性价比还是不错的。<br><a id="more"></a></p><p>开始正题</p><h2 id="安装Fedora软件仓库"><a href="#安装Fedora软件仓库" class="headerlink" title="安装Fedora软件仓库"></a>安装Fedora软件仓库</h2><p>centos虽然说稳定，但是是牺牲版本的前提下实现的，官方的库又旧又老，部分软件只能现编译安装，不能通过yum安装，所以需要安装fedora的仓库</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">yum install epel-release</span><br><span class="line">yum -y update</span><br></pre></td></tr></table></figure><h2 id="安装transmission"><a href="#安装transmission" class="headerlink" title="安装transmission"></a>安装transmission</h2><p>安装完后就可以通过epel安装较新的软件</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">yum install transmission-cli transmission-common transmission-daemon</span><br><span class="line">systemctl start transmission-daemon.service</span><br><span class="line">systemctl stop transmission-daemon.service</span><br></pre></td></tr></table></figure><h2 id="编辑配置文件"><a href="#编辑配置文件" class="headerlink" title="编辑配置文件"></a>编辑配置文件</h2><p>修改配置文件必须在transmission关闭的情况下，不然改了也白改</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vi /var/lib/transmission/.config/transmission-daemon/settings.json</span><br></pre></td></tr></table></figure><p>主要修改这一部分<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&quot;rpc-authentication-required&quot;: true, #启动网页认证</span><br><span class="line">&quot;rpc-enabled&quot;: true,</span><br><span class="line">&quot;rpc-password&quot;: &quot;mypassword&quot;, #登录密码，启动后会被加密</span><br><span class="line">&quot;rpc-username&quot;: &quot;mysuperlogin&quot;, #登录用户</span><br><span class="line">&quot;rpc-whitelist-enabled&quot;: false, #关闭ip白名单</span><br></pre></td></tr></table></figure></p><p>其他配置信息可以根据自己需要修改</p><h2 id="创建下载目录并启动TM"><a href="#创建下载目录并启动TM" class="headerlink" title="创建下载目录并启动TM"></a>创建下载目录并启动TM</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir /home/download</span><br><span class="line">chown -R transmission:transmission /home/download</span><br><span class="line">systemctl start transmission-daemon.service</span><br></pre></td></tr></table></figure><p>现在访问你的ip:9091就可以登录进transmission的管理页面了</p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> centos </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>新版Print.Moe| Beta测试</title>
+      <link href="/2017/08/30/%E6%96%B0%E7%89%88Print-Moe-Beta%E6%B5%8B%E8%AF%95/"/>
+      <url>/2017/08/30/%E6%96%B0%E7%89%88Print-Moe-Beta%E6%B5%8B%E8%AF%95/</url>
+      <content type="html"><![CDATA[<p>原本的Print.moe由Python编写，但是由于本人对于Python的研究还不够透彻，导致写出来的东西不成体系<del>代码烂</del>，后期难以维护<del>懒的搞</del>。</p><p>所以趁学习ssm正好把此项目重写一番，反正是个长期的项目，后期将会加入管理后台，就可以更好的解除一些限制。</p><a id="more"></a><p>并且目前看来Json接口没有需求，Java版本的Print.Moe将暂时取消。</p><p>已对文档内容更新<a href="https://by.cx/2017/07/31/Print-moe-%E5%85%8D%E8%B4%B9%E7%9A%84%E5%8A%A8%E6%BC%AB%E5%A3%81%E7%BA%B8API/">Print.moe 免费的动漫壁纸API</a></p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> print.moe </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>8-21图</title>
+      <link href="/2017/08/25/8-21%E5%9B%BE/"/>
+      <url>/2017/08/25/8-21%E5%9B%BE/</url>
+      <content type="html"><![CDATA[<p><img src="/2017/08/25/8-21图/./DSC_0105.png" alt=""></p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> 照片 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Print.moe 免费的动漫壁纸API</title>
+      <link href="/2017/07/31/Print-moe-%E5%85%8D%E8%B4%B9%E7%9A%84%E5%8A%A8%E6%BC%AB%E5%A3%81%E7%BA%B8API/"/>
+      <url>/2017/07/31/Print-moe-%E5%85%8D%E8%B4%B9%E7%9A%84%E5%8A%A8%E6%BC%AB%E5%A3%81%E7%BA%B8API/</url>
+      <content type="html"><![CDATA[<h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><p>更新日期：2017-09-17</p><blockquote><ul><li>0.<a href="#0">项目背景</a></li><li>1.<a href="#1">功能简介</a></li><li>2.<a href="#2">Web Api</a><ul><li>2a.<a href="#2.1">Json输出(暂时取消)</a></li><li>2b.<a href="#2.2">Raw图像输出</a></li></ul></li><li>3.<a href="#3">FBI Warning</a></li></ul></blockquote><hr><h2 id="项目背景"><a href="#项目背景" class="headerlink" title="项目背景"></a><div id="0">项目背景</div></h2><p><a href="https://print.moe" target="_blank" rel="noopener">Print.Moe</a>作为我的一个实验性公共项目已经准备了很长时间，不过因为这个学期的事情比较多。</p><p>图片均是从konachan上爬下来的，截至03/08/17晚9:30分总‘收录’图片197390条，并以每天20-50条的速度增加，由于并不是实时添加，所以K站上最新的图片不一定会马上在我的服务器中。因为你懂得的原因，可公共开放的为141977条，这14万条将可以从api中检索到。<br><a id="more"></a><br>开发计划以及完善计划都拖了很久，上线小范围测试(没啥人用)之后，应该能够满足小部分人的需求。</p><p>80G的硬盘+2t的国内直连机房，应该能够吃得消。见过有人在15年爬完konachan全站大约43G。</p><hr><h3 id="功能简介"><a href="#功能简介" class="headerlink" title="功能简介"></a><div id="1">功能简介</div></h3><p><a href="https://print.moe" target="_blank" rel="noopener">Print.Moe</a>提供公共的免费动漫高清壁纸检索功能。</p><hr><h4 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a><div id="1.1">工作原理</div></h4><p>使用Python爬虫从Konachan官方提供的接口中爬取所有的信息，并存储至mysql数据库中。</p><p>并由Flask制作Api检索接口从mysql服务器检索数据。</p><p>由于Konachan在国内被屏蔽，所以Raw输出下将由本人的机子进行CDN处理，可以直接得到图片。</p><hr><h2 id="Web-Api"><a href="#Web-Api" class="headerlink" title="Web Api"></a><div id="2">Web Api</div></h2><p><a href="https://print.moe" target="_blank" rel="noopener">Print.Moe</a>服务提供两种接口</p><blockquote><ul><li>Json输出接口</li><li>Raw输出接口</li></ul></blockquote><p>提供的检索接口直接需要将参数拼到url上就可以了。</p><p>支持的参数及默认参数（-1则表示不进行处理）<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">limit=1 #输出条目数</span><br><span class="line">page = 1 #第几页</span><br><span class="line">author = -1 #作者</span><br><span class="line">days = 1 #创建日期多少天内</span><br><span class="line">w_max = -1 #最大宽度</span><br><span class="line">w_min = -1 #最小宽度</span><br><span class="line">h_max = -1 #最大高度</span><br><span class="line">h_min = -1 #最小高度</span><br><span class="line">desc = 1 #排序方式</span><br><span class="line">order = 1 #排序依据</span><br><span class="line">tags =  #tag标签</span><br></pre></td></tr></table></figure></p><p>为了防止response太大，所以limit请不要设置太大,建议在100以下。</p><p>desc=[‘asc’,’desc’],所以默认1为desc降序，0为升序</p><p>order=[‘score’,’width’,’height’,’created_at’,’random’],0-4(Json模式下random无效)</p><hr><h4 id="Json-Output"><a href="#Json-Output" class="headerlink" title="Json Output"></a><div id="2.1">Json Output</div></h4><p>Json输出接口将返回所检索条目的所有数据，目前收录有效字段：</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">id #图片于print.moe服务器中的id</span><br><span class="line">kid #图片在konachan的id</span><br><span class="line">author #图片作者名</span><br><span class="line">tags #图片在k站的标签</span><br><span class="line">created_at #unix时间戳，图片的上传时间</span><br><span class="line">creator_id #作者在K站的id(?)</span><br><span class="line">source #图片来源</span><br><span class="line">score #得分</span><br><span class="line">md5</span><br><span class="line">file_size #原图大小</span><br><span class="line">file_url #原图在K站的缓存地址</span><br><span class="line">is_shown_in_index #是否在K站首页显示(?)</span><br><span class="line">preview_url #预览图片(完全不能看的图)</span><br><span class="line">sample_url #样例图片(可以看的图)</span><br><span class="line">jpeg_url #jpeg压缩过后的图片地址</span><br><span class="line">has_children #是否有儿童(!)</span><br><span class="line">width #宽度</span><br><span class="line">height #高度</span><br></pre></td></tr></table></figure><p>Example：</p><p><a href="https://print.moe/api.json?order=3&amp;limit=10&amp;tags=miku&amp;days=100&amp;h_min=800" target="_blank" rel="noopener">https://print.moe/api.json?order=3&amp;limit=10&amp;tags=miku&amp;days=100&amp;h_min=800</a></p><p><code>检索tag中有miku，高度最小为800的图片，以创建时间降序100天内最新的10张</code></p><hr><h4 id="Raw-Output"><a href="#Raw-Output" class="headerlink" title="Raw Output"></a><div id="2.2">Raw Output</div></h4><p>[17号更新]</p><p>1.可以使用size参数限制图片大小，因为发现数据库中有很多的几十M的图片，所以加了这个参数，单位是byte</p><p>如果限制最大1M的图片则1024*1024</p><h2 id="2-order-4随机接口也支持所有的参数"><a href="#2-order-4随机接口也支持所有的参数" class="headerlink" title="2.order=4随机接口也支持所有的参数"></a>2.order=4随机接口也支持所有的参数</h2><p>[31号更新新特性]</p><p>可通过kid进行图片获取，如api.jpg?id=243565(单纯把我当成Konachan的CDN了)。</p><hr><p>直出模式就是直接输出一张图片，可用于网站的背景什么的，由于浏览器缓存的原因，建议在最后面&amp;上一个随机数。</p><p>直出模式会先在服务器创建副本再输出给浏览器。</p><p>参数同上<br>Example0：</p><p><img src="https://print.moe/api.jpg?order=3&amp;tags=Morgiana&amp;day=100&amp;h_min=1200" alt="范例"></p><p><a href="https://print.moe/api.jpg?order=3&amp;tags=Morgiana&amp;days=100&amp;h_min=1200" target="_blank" rel="noopener">https://print.moe/api.jpg?order=3&amp;tags=Morgiana&amp;days=100&amp;h_min=1200</a></p><p><code>检索tag中有摩爷(我正房)，高度最小为1200的图片，以创建时间降序100天内最新的1张</code></p><p>Example1：</p><p><img src="https://print.moe/api.jpg?order=4" alt="范例"></p><p><a href="https://print.moe/api.jpg?order=4" target="_blank" rel="noopener">https://print.moe/api.jpg?order=4</a></p><p><code>从14W的数据库中随机检索出一张</code></p><hr><h2 id="FBI-Warning"><a href="#FBI-Warning" class="headerlink" title="FBI Warning"></a><div id="3">FBI Warning</div></h2><ul><li>最主要的注意事项：<code>图片的版权归其作者所有，任何未经许可的侵权或商业行为均是违法的</code>。</li><li>上线有一天发现有人爬我的图，我声明一下！！如果你想要我的数据库，请联系我，我可以直接给你，请不要使用爬虫直接爬图片的行为（虽然我也做过，但是后来改成爬json接口了哇）！爬Json接口的话我倒是不在意。</li><li>直出模式均由本人的服务器进行CDN（不想备案，没钱买CDN），所以请不要进行滥用。。。大佬手下留情！</li><li>本人对同IP的访问频率做了限制，1ip一秒平均请求1次，突发2次。</li><li>有任何问题欢迎留言（真的有人看吗）</li></ul>]]></content>
+      
+      
+        <tags>
+            
+            <tag> print.moe </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Tomcat日志排坑</title>
+      <link href="/2017/07/23/Tomcat%E6%97%A5%E5%BF%97%E6%8E%92%E5%9D%91/"/>
+      <url>/2017/07/23/Tomcat%E6%97%A5%E5%BF%97%E6%8E%92%E5%9D%91/</url>
+      <content type="html"><![CDATA[<p>之前更新过一次ssh项目的代码，对TOMCAT重新部署的时候却发现死活也部署不上，查看了tomcat的catalina的输出日志，然而却只有同样的一个错误提示<br><a id="more"></a></p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">18-Jul-2017 18:09:18.069 INFO [16] org.apache.catalina.loader.WebappClassLoaderBase.checkStateForResourceLoading Illegal access: this web application instance has been stopped already. Could not load [com.mchange.v2.resourcepool.BasicResourcePool$1DestroyResourceTask]. The following stack trace is thrown for debugging purposes as well as to attempt to terminate the thread which caused the illegal access.</span><br><span class="line"> java.lang.IllegalStateException: Illegal access: this web application instance has been stopped already. Could not load [com.mchange.v2.resourcepool.BasicResourcePool$1DestroyResourceTask]. The following stack trace is thrown for debugging purposes as well as to attempt to terminate the thread which caused the illegal access.</span><br><span class="line">at org.apache.catalina.loader.WebappClassLoaderBase.checkStateForResourceLoading(WebappClassLoaderBase.java:1305)</span><br><span class="line">at org.apache.catalina.loader.WebappClassLoaderBase.checkStateForClassLoading(WebappClassLoaderBase.java:1293)</span><br><span class="line">at org.apache.catalina.loader.WebappClassLoaderBase.loadClass(WebappClassLoaderBase.java:1158)</span><br><span class="line">at org.apache.catalina.loader.WebappClassLoaderBase.loadClass(WebappClassLoaderBase.java:1119)</span><br><span class="line">at com.mchange.v2.resourcepool.BasicResourcePool.destroyResource(BasicResourcePool.java:1040)</span><br><span class="line">at com.mchange.v2.resourcepool.BasicResourcePool.removeResource(BasicResourcePool.java:1507)</span><br><span class="line">at com.mchange.v2.resourcepool.BasicResourcePool.removeResource(BasicResourcePool.java:1477)</span><br><span class="line">at com.mchange.v2.resourcepool.BasicResourcePool.cullExpired(BasicResourcePool.java:1565)</span><br><span class="line">at com.mchange.v2.resourcepool.BasicResourcePool.access$1900(BasicResourcePool.java:44)</span><br><span class="line">at com.mchange.v2.resourcepool.BasicResourcePool$CullTask.run(BasicResourcePool.java:2089)</span><br><span class="line">at java.util.TimerThread.mainLoop(Timer.java:555)</span><br><span class="line">at java.util.TimerThread.run(Timer.java:505)</span><br><span class="line"></span><br><span class="line">18-Jul-2017 18:09:19.327 INFO [main] org.apache.catalina.core.StandardServer.await A valid shutdown command was received via the shutdown port. Stopping the Server instance.</span><br></pre></td></tr></table></figure><p>然而上网翻了半天却没有一个完全的解释，都是从一个地方复制过来的答案“线程被提前关闭”，完。</p><p>完全没有一点建设性用途。</p><p>不过tomcat日志给出的错误信息完全不能用来debug，所以需要别的途径获得真实的错误信息。</p><p>所以需要用到Logger(java.util.logging.Logger)</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#配置输出方式，文件输出和控制台输出</span><br><span class="line">handlers = org.apache.juli.FileHandler, java.util.logging.ConsoleHandler      </span><br><span class="line">#配置文件输出的级别为FINE，输出目录为tomcat目录下的logs/tomcat.log目录下，前缀为error-debug</span><br><span class="line">org.apache.juli.FileHandler.level = FINE    </span><br><span class="line">org.apache.juli.FileHandler.directory = $&#123;catalina.home&#125;/logs/tomcat.log  </span><br><span class="line">org.apache.juli.FileHandler.prefix = error-debug.    </span><br><span class="line">#配置控制台输出</span><br><span class="line">java.util.logging.ConsoleHandler.level = FINE  </span><br><span class="line">java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter</span><br></pre></td></tr></table></figure><p>日志输出级别：<br><code>SEVERE &gt; WARNING &gt; INFO &gt; CONFIG &gt; FINE &gt; FINER &gt; FINEST（内容最多）</code></p><p>将内容写入WEB-INF的class目录下，文件名为<code>logging.properties</code></p><p>重启tomcat就可以看到日志内容。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">18-Jul-2017 19:05:02.756 SEVERE [localhost-startStop-1] org.apache.catalina.core.StandardContext.listenerStart Exception sending context initialized event to listener instance of class org.springframework.web.context.ContextLoaderListener</span><br><span class="line"> org.springframework.beans.factory.BeanCreationException: Error creating bean with name &apos;commentDao&apos;: Injection of resource dependencies failed; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name &apos;sessionFactory&apos; defined in class path resource [beans.xml]: Invocation of init method failed; nested exception is org.hibernate.InstantiationException: could not instantiate test objectcn.fight.waibao.model.Logistics</span><br><span class="line">at org.springframework.context.annotation.CommonAnnotationBeanPostProcessor.postProcessPropertyValues(CommonAnnotationBeanPostProcessor.java:306)</span><br><span class="line">at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.populateBean(AbstractAutowireCapableBeanFactory.java:1106)</span><br><span class="line">at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:517)</span><br><span class="line">at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:456)</span><br><span class="line">at org.springframework.beans.factory.support.AbstractBeanFactory$1.getObject(AbstractBeanFactory.java:294)</span><br><span class="line">at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:225)</span><br><span class="line">at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:291)</span><br><span class="line">at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:193)</span><br><span class="line">at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:585)</span><br><span class="line">at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:913)</span><br><span class="line">at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:464)</span><br><span class="line">at org.springframework.web.context.ContextLoader.configureAndRefreshWebApplicationContext(ContextLoader.java:385)</span><br><span class="line">at org.springframework.web.context.ContextLoader.initWebApplicationContext(ContextLoader.java:284)</span><br><span class="line">at org.springframework.web.context.ContextLoaderListener.contextInitialized(ContextLoaderListener.java:111)</span><br><span class="line">at org.apache.catalina.core.StandardContext.listenerStart(StandardContext.java:4754)</span><br><span class="line">at org.apache.catalina.core.StandardContext.startInternal(StandardContext.java:5216)</span><br><span class="line">at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:150)</span><br><span class="line">at org.apache.catalina.core.ContainerBase.addChildInternal(ContainerBase.java:752)</span><br><span class="line">at org.apache.catalina.core.ContainerBase.addChild(ContainerBase.java:728)</span><br><span class="line">at org.apache.catalina.core.StandardHost.addChild(StandardHost.java:734)</span><br><span class="line">at org.apache.catalina.startup.HostConfig.deployDirectory(HostConfig.java:1107)</span><br><span class="line">at org.apache.catalina.startup.HostConfig$DeployDirectory.run(HostConfig.java:1841)</span><br><span class="line">at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)</span><br><span class="line">at java.util.concurrent.FutureTask.run(FutureTask.java:266)</span><br><span class="line">at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)</span><br><span class="line">at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)</span><br><span class="line">at java.lang.Thread.run(Thread.java:748)</span><br></pre></td></tr></table></figure></p><p>从我的日志看来就是找不到某个class导致的启动失败，然而这种错误信息竟然不会显示到catalina的日志里吗。。。</p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> tomcat </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Telegram-send</title>
+      <link href="/2017/07/17/Telegram-send/"/>
+      <url>/2017/07/17/Telegram-send/</url>
+      <content type="html"><![CDATA[<p><a href="https://github.com/rahiel/telegram-send" target="_blank" rel="noopener">Telegram-send</a>是基于官方<a href="https://python-telegram-bot.org/" target="_blank" rel="noopener">Telegram-bot</a>所二次开发的python bot，如果你对于telegram bot的需求只是发布一些信息没有与用户交互的内容的话可以选择使用telegram-send。</p><p><del>AD</del>就像此频道<a href="https://t.me/ACGImage" target="_blank" rel="noopener">ACGImage</a>每两小时发布一张ACG壁纸图片。</p><p>Telegram-Send同时可以将Telegram作为私人网盘使用，虽然官方没有禁止，但是还是避免滥用.<br><a id="more"></a></p><h3 id="初始化操作"><a href="#初始化操作" class="headerlink" title="初始化操作"></a>初始化操作</h3><p>先在<code>@BotFather</code>注册一只bot，完成之后会得到bot的token</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pip3 install telegram-send #安装</span><br><span class="line">telegram-send --configure #配置telegram-send，输入token</span><br></pre></td></tr></table></figure><p>部分地区由于某些原因无法直接链接telegram，所以配置TS的部分需要通过“特殊”方法才能正常使用，如果使用http协议，可以直接使用</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">export http_proxy=http://ip:port</span><br></pre></td></tr></table></figure><p>作用范围是当前终端，退出后此配置失效。</p><p>TS也有提供一种方法</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https_proxy=https://ip:port telegram-send &quot;hello&quot;</span><br></pre></td></tr></table></figure><p>作用范围是单条命令，再次发送也得设置</p><p>所以推荐使用export，如果你是ss需要安装<code>pip3 install pysocks</code></p><p>然后<code>https_proxy=socks5://ip:port</code>便可以使用socks5协议</p><p>也可以直接写入终端的配置文件一劳永逸</p><p>配置完成之后就可以使用<code>telegram-send &quot;hello&quot;</code>命令向你发送信息</p><h3 id="进阶-在python内使用"><a href="#进阶-在python内使用" class="headerlink" title="进阶-在python内使用"></a>进阶-在python内使用</h3><p>如果想写出ACGImage Channel那样的bot的话单用shell实在是有些复杂</p><p>所以需要在python程序内运行，操作过程也是很简单</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">import telegram_send #导入库</span><br><span class="line">os.environ[&quot;https_proxy&quot;] = &quot;https://ip:port&quot; #国内需要配置</span><br><span class="line">telegram_send.send([“hello”])</span><br></pre></td></tr></table></figure><p>需要注意的是就是send的内容必须在[]内，不然就会被拆分为单个字符。</p><blockquote><p>It should be telegram_send.send([“hello”]), it takes a list of strings as messages.——FROM <a href="https://github.com/rahiel/telegram-send/issues/13#issuecomment-306481419" target="_blank" rel="noopener">rahiel on github</a></p></blockquote><p>之前就犯了这错，然后发了issue。没错这个issue就是我发的。</p><p>发了这个issue之后作者吧by proxy的的方法就写到readme中去了，说明作者还是不断在维护这项目的。</p>]]></content>
+      
+      
+    </entry>
+    
+    <entry>
+      <title>Wordpress to Hexo</title>
+      <link href="/2017/07/12/Wordpress-to-Hexo/"/>
+      <url>/2017/07/12/Wordpress-to-Hexo/</url>
+      <content type="html"><![CDATA[<h2 id="搬家"><a href="#搬家" class="headerlink" title="搬家"></a>搬家</h2><p>大佬Louisa换了Hexo部署到gitlab上。</p><p>貌似挺好看，而且WordPress的速度真是不敢恭维，即使是HK的VPS照样那么慢，索性就直接用Hexo方便多了还支持markdown。</p><p>使用<code>hexo-migrator-wordpress</code>插件可以直接将wordpress导出的xml文件转为hexo格式的文章</p><p>同时<code>https://github.com/CodeFalling/hexo-asset-image</code>的插件可以直接在本地插入图片内容,图片党当然必装这插件啦<br><a id="more"></a></p><p><img src="/2017/07/12/Wordpress-to-Hexo/sticker.webp" alt="test"></p>]]></content>
+      
+      
+        <tags>
+            
+            <tag> 折腾 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>rngd加速Tomcat启动速度</title>
+      <link href="/2017/05/09/rngd-e5-8a-a0-e9-80-9ftomcat-e5-90-af-e5-8a-a8-e9-80-9f-e5-ba-a6/"/>
+      <url>/2017/05/09/rngd-e5-8a-a0-e9-80-9ftomcat-e5-90-af-e5-8a-a8-e9-80-9f-e5-ba-a6/</url>
+      <content type="html"><![CDATA[<p>在vps上部署tomcat后，如果不使用tomcat自带的管理界面，那么每次重新部署网站都得重启tomcat，而由于Tomcat 7/8都使用<br><code>org.apache.catalina.util.SessionIdGeneratorBase.createSecureRandom</code><br>，导致每次在生成随机数时要花费几百秒，而平时我的vps也没啥东西运行，所以<code>熵池（entropy pool）</code>的填充速度也是十分慢，最长的一次启动更花了我300多s。（每次在vps重启tomcat都得刷会微博，然后忘了干正事）</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">04-May-2017 20:58:16.765 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in 303427 ms</span><br></pre></td></tr></table></figure><a id="more"></a><p>通过<code>watch cat /proc/sys/kernel/random/entropy_avail</code>查看，平时的池大小都是在200左右浮动，更极端情况保持了很久的20，这样势必会导致tomcat从<code>/dev/random</code>读取随机数时产生了阻塞。通过这样的特点，一些攻击也可以通过这些来实现，不断的使用需要读取随机数的地方消耗系统的熵池，造成系统的阻塞。虽然说使用<code>/dev/urandom</code>伪随机数生成设备也能在熵池较小的情况下完成随机数的生成，但是并没有真·随机数来的安全（恩。大概）。<br>Centos下使用</p><p><code>yum install rng-tools</code></p><p>安装服务之后使用</p><p><code>systemctl enable rngd.service</code></p><p>启动rngd服务，</p><p><code>systemctl start rngd.service</code></p><p><code>systemctl status rngd.service</code>查看rngd服务状态，启动失败可以</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /usr/lib/systemd/system/rngd.service /etc/systemd/system</span><br><span class="line">vim /etc/systemd/system/rngd.service</span><br></pre></td></tr></table></figure><p>修改<code>ExecStart=</code>为<code>ExecStart=/sbin/rngd -f -r /dev/urandom</code><br>重启服务</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl daemon-reload</span><br><span class="line">systemctl restart rngd.service</span><br></pre></td></tr></table></figure><p>不过rngd -v我这下面还是显示</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Unable to open file: /dev/tpm0</span><br><span class="line">can&apos;t open any entropy source</span><br><span class="line">Maybe RNG device modules are not loaded</span><br></pre></td></tr></table></figure><p>在Arch的wiki上查到这篇文章<a href="https://wiki.archlinux.org/index.php/Rng-tools" target="_blank" rel="noopener">here</a><br>但是对于我来说并没有啥卵用</p>]]></content>
+      
+      <categories>
+          
+          <category> Java </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> linux </tag>
+            
+            <tag> tomcat </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>json解析[python图片爬虫-Ⅲ]</title>
+      <link href="/2017/03/25/json-e8-a7-a3-e6-9e-90python-e5-9b-be-e7-89-87-e7-88-ac-e8-99-ab-e2-85-a2/"/>
+      <url>/2017/03/25/json-e8-a7-a3-e6-9e-90python-e5-9b-be-e7-89-87-e7-88-ac-e8-99-ab-e2-85-a2/</url>
+      <content type="html"><![CDATA[<p>之前的爬虫采取的方案都是直接进入网页再用正则获取实际的图片地址，这样的做法看上去很好，但是在获取网页的时候需要下载整个网页，所以每次越有80%的内容是重复的，而且剩下的20%中我们需要的又只是5%。同时过高的访问频率还可能导致目标站点将自己拉近黑名单。所以我们需要一种能够直接提供我们需要信息的方法。</p><p>这时候API就显得十分重要，API能够直接根据参数提供我们想要的实体，而不是写入整张网页中，能有效的节约编写解析代码的时间，也能减轻服务器的压力。<br><a id="more"></a></p><p>还是以konachan为例，konachan官方直接提供了一个API（<a href="http://konachan.com/help/api" target="_blank" rel="noopener">API文档</a>），查看文档的Posts部分</p><p><code>http://konachan.com/post.json</code></p><p>我们可以发现konachan提供json接口，同时支持参数：</p><ul><li><p><code>page</code></p></li><li><p><code>tag</code></p></li><li><p><code>limit</code></p></li></ul><p>这样就可以节约大量在页面解析方面的时间</p><h2 id="编写代码"><a href="#编写代码" class="headerlink" title="编写代码"></a>编写代码</h2><h3 id="requests代理"><a href="#requests代理" class="headerlink" title="requests代理"></a>requests代理</h3><p>由于站内有部分河蟹内容，所以部分地区可能无法直接连接（比如我），所以在运行此python程序的时候需要使用代理访问。ss-qt5可以直接将ss在本地转为http协议，在使用的时候就非常方便，如果你的ss客户端无法将sock5转为http则可以使用Privoxy等软件转换一下;</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">import requests</span><br><span class="line">proxies = &#123; &quot;http&quot;: &quot;http://127.0.0.1:1080&quot; &#125;</span><br><span class="line">url=r&apos;http://konachan.com/post.json?page=1&amp;amp;limit=50&apos;</span><br><span class="line">html = requests.get(url, proxies=proxies)</span><br></pre></td></tr></table></figure><p>这样requests就可以从代理获取目标网页<br><img src="https://nook.one/wp-content/uploads/2017/03/Spectacle.TJ3771.jpeg" alt=""></p><h3 id="解析json"><a href="#解析json" class="headerlink" title="解析json"></a>解析json</h3><p>可以看到获得的结果为一大串的json，所以要将内容转化为python的json对象，这样才能提取到我们要的内容</p><p>先对json内容进行分析得到，由于参数太多了，这次就先对其中比较重要的内容进行提取</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">tags=[]</span><br><span class="line">ids=[]</span><br><span class="line">file_sizes=[]</span><br><span class="line">file_urls=[]</span><br><span class="line">widths=[]</span><br><span class="line">heights=[]</span><br><span class="line">jsons=html.json()#得到json数组</span><br><span class="line">for tmp in jsons:#根据key提取，并将所有value放入数组内</span><br><span class="line">    tags.append(tmp[&apos;tags&apos;])</span><br><span class="line">    ids.append(tmp[&apos;id&apos;])</span><br><span class="line">    widths.append(tmp[&apos;width&apos;])</span><br><span class="line">    heights.append(tmp[&apos;height&apos;])</span><br><span class="line">    file_sizes.append(tmp[&apos;file_size&apos;])</span><br><span class="line">    file_urls.append(tmp[&apos;file_url&apos;])</span><br></pre></td></tr></table></figure><h3 id="下载图片"><a href="#下载图片" class="headerlink" title="下载图片"></a>下载图片</h3><p>这是跟直接从konachan下载图片一样，是id+tags+ext组成文件名，可以根据自己需求修改</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">      for i in range(0, len(file_urls) - 1):#循环至有效长度</span><br><span class="line">        try:</span><br><span class="line">            tmps = file_urls[i].split(&quot;.&quot;)#分割url</span><br><span class="line">            tags[i]=tags[i].replace(&quot;/&quot;,&quot;-&quot;)#替换tags里的“/”防止创建文件时出错</span><br><span class="line">            if len(tags[i]) &gt; 140:#对过长的文件名进行分割</span><br><span class="line">                fileName = path + &quot;/&quot; + str(ids[i]) + tags[i][0:100] + &quot;.&quot; + tmps[len(tmps) - 1]</span><br><span class="line">            else:</span><br><span class="line">                fileName = path + &quot;/&quot; + str(ids[i]) + tags[i] + &quot;.&quot; + tmps[len(tmps) - 1]</span><br><span class="line">            print(&quot;开始下载:&quot;+fileName+&quot;\n&quot;)</span><br><span class="line">#通过代理下载图片</span><br><span class="line">            r = requests.get(&quot;http:&quot; + file_urls[i], stream=True, proxies=proxies)</span><br><span class="line">#以缓存方式写入硬盘（不过python好像默认是使用缓冲区的？）</span><br><span class="line">            with open(fileName, &apos;wb&apos;) as f:</span><br><span class="line">                for chunk in r.iter_content(chunk_size=1024):</span><br><span class="line">                    if chunk:</span><br><span class="line">                        f.write(chunk)</span><br><span class="line">                        f.flush()</span><br><span class="line">                f.close()</span><br><span class="line">            print(&quot;下载结束\n&quot;)</span><br><span class="line">        except:</span><br><span class="line">            print(ids[i]+&quot; : failed&quot;)</span><br></pre></td></tr></table></figure><p>这样一个基础的爬虫就写好了</p>]]></content>
+      
+      <categories>
+          
+          <category> python </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> python </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>爬虫升级[python图片爬虫-Ⅱ]</title>
+      <link href="/2016/12/07/img-crawler-2/"/>
+      <url>/2016/12/07/img-crawler-2/</url>
+      <content type="html"><![CDATA[<p><a href="https://nook.one/2016/12/04/img-crawler/" target="_blank" rel="noopener">接上次</a>虽然完成了konachan的爬虫，但是一股脑的将图片下载下来后期整理起来可是件烦心事，所以要对上次的python爬虫进行升级定制</p><h3 id="开工"><a href="#开工" class="headerlink" title="开工"></a>开工</h3><ul><li>konachan上的图片大小不一，如果是要拿来当素材壁纸之类可能会对图片的大小有要求</li></ul><a id="more"></a><p>&nbsp;</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">from PIL import Image</span><br><span class="line">import os</span><br><span class="line">def imgCheck(fileName):</span><br><span class="line">        image = Image.open(fileName)#打开图片</span><br><span class="line">        imgSize = image.size#获取图片大小</span><br><span class="line">        maxsize = max(imgSize)#获取最大宽度</span><br><span class="line">        minsize = min(imgSize)#获取最小宽度</span><br><span class="line">        image.close()#关闭图片</span><br><span class="line">        if maxsize&amp;lt;1280 :</span><br><span class="line">                if minsize&amp;lt;768:</span><br><span class="line">                        os.remove(fileName)#图片不符合要求删除图片</span><br><span class="line">                        return 0#返回值表明这张图不符合要求</span><br></pre></td></tr></table></figure><p>我是在python3下的环境，所以pillow图片库是个不错的选择<br>可能会出现PIL库找不到的情况，所以手动安装<code>pip install pillow</code></p><ul><li>通过id方式爬到的图片并没有进行内容筛选，所以可能会爬到你懂的的图片，所以我们可以对图片内容筛选</li></ul><p>由于konachan把所有的tag都放到了图片名上，所以我们可以很轻松的在url上用find的方法进行匹配<br>而且爬虫这种东西有人可能会放在一些树莓派之类的东西上（比如我），如果不是pi3不能直接插移动硬盘，只能上个U盘之类，那就得对爬的容量做出限制<br>所以我们在getImg方法中魔改</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">def getImg(html):</span><br><span class="line">        global filesize#声明全局</span><br><span class="line">        reg = r&apos;highres-show&amp;quot; href=&amp;quot;(.+?)&amp;quot;&apos;</span><br><span class="line">        imgre = re.compile(reg)</span><br><span class="line">        imglist = re.findall(imgre,html)</span><br><span class="line">        if len(imglist)==0:</span><br><span class="line">                return &amp;quot;empty&amp;quot;</span><br><span class="line">        splited = imglist[0].split(&amp;quot;/&amp;quot;)</span><br><span class="line">        fileName = splited[len(splited)-1]</span><br><span class="line">        if fileName.find(&amp;quot;sex&amp;quot;)&amp;gt;0:#查找关键字</span><br><span class="line">                return &amp;quot;sex&amp;quot;#匹配到则结束方法</span><br><span class="line">        fileName = &amp;quot;img/&amp;quot;+fileName</span><br><span class="line">        try:</span><br><span class="line">                urllib.request.urlretrieve(imglist[0],fileName )#下载图片</span><br><span class="line">        except:</span><br><span class="line">                return &amp;quot;failed&amp;quot;#如果下载失败</span><br><span class="line">        #先在全局定义一个filesize变量每次下载则加进去</span><br><span class="line">        filesize+=os.path.getsize(fileName)/1024.0/1024.0</span><br><span class="line">        if filesize &amp;gt; 4000:#下载量超出则退出程序</span><br><span class="line">                print(&amp;quot;out of max size&amp;quot;)</span><br><span class="line">                exit(0)</span><br><span class="line">        if imgCheck(fileName)==0:#imgCheck方法返回0则表示图片大小不符合要求</span><br><span class="line">                return &amp;quot;too small&amp;quot;</span><br><span class="line">        return fileName</span><br></pre></td></tr></table></figure><p>也可以对其他内容进行DIY，使爬取的信息更加符合自己的要求</p>]]></content>
+      
+      <categories>
+          
+          <category> python </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> python </tag>
+            
+            <tag> 爬虫 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>收集动漫壁纸[python图片爬虫]</title>
+      <link href="/2016/12/04/img-crawler/"/>
+      <url>/2016/12/04/img-crawler/</url>
+      <content type="html"><![CDATA[<p>不知道怎么就买了个pi3，自带wifi和蓝牙，这样就不用插一根usb 网卡还得考虑驱动的问题。</p><p>而且这么多的VPS开着流量也用不完，而且最近还在学校里弄到个工作室，这样就可以做一个爬虫挂在工作室里24小时不用断电。</p><p>raspbian自带python 2.7.X和3.4.X 默认<code>python</code>是运行2.X版本所以运行3得用<code>python3</code></p><p><a href="https://github.com/tusik/img-crawler" target="_blank" rel="noopener">我的爬虫范例</a><a id="more"></a></p><p>我们这次就拿<a href="http://konachan.com/" target="_blank" rel="noopener">http://konachan.com/</a>来作为例子</p><h3 id="编写爬虫"><a href="#编写爬虫" class="headerlink" title="编写爬虫"></a>编写爬虫</h3><ul><li>1.首先需要解析HTML内容<br>konachan的图片是以一串编号的模式访问的，而且是递增式，这样我们解析的难度就减少了很多</li></ul><p>以“<a href="http://konachan.com/post/show/”为基础在后面加上数字id就可以获取到图片的sample页面" target="_blank" rel="noopener">http://konachan.com/post/show/”为基础在后面加上数字id就可以获取到图片的sample页面</a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">def getHtml(url):</span><br><span class="line">        page = urllib.request.urlopen(url)#打开网页</span><br><span class="line">        html = page.read()#读取网页</span><br><span class="line">        html = html.decode(&apos;UTF-8&apos;)#以UTF8方式解析网页</span><br><span class="line">return html#返回网页</span><br></pre></td></tr></table></figure></p><p>这样就可以完成打开网页的基本操作，但是打开网页的过程可能会遇到各种异常，而如果不对产生的异常进行处理的话会导致程序中断，爬虫可能就会这样死在路上。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">def getHtml(url):</span><br><span class="line">        try:</span><br><span class="line">                page = urllib.request.urlopen(url)</span><br><span class="line">                html = page.read()</span><br><span class="line">                html = html.decode(&apos;UTF-8&apos;)</span><br><span class="line">        except:</span><br><span class="line">                return &quot;error&quot;</span><br><span class="line">        return html</span><br></pre></td></tr></table></figure><ul><li>2.获取图片地址<br>然而上面打开的图片仅仅是sample，konachan是将压缩过的sample给用户看，如果喜欢则可以选择大图链接进行下载，这种模式可以增加访问者的加载速度也可以一定程度减轻服务器的负担，所以我们需要通过正则来获得原始图片的链接地址</li></ul><p><img src="https://nook.one/wp-content/uploads/2016/12/konachan_larger.jpg" alt="konachan_larger"></p><p>我们可以看到View larger version链接的class中一定会有highres-show这个属性，所以正则编写起来更方便</p><p>‘highres-show” href=”(.+?)”‘通过这个正则表达式就可以获取原始图片的url链接</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">def getImg(html):</span><br><span class="line">        reg = r&apos;highres-show&quot; href=&quot;(.+?)&quot;&apos;</span><br><span class="line">        imgre = re.compile(reg)</span><br><span class="line">        imglist = re.findall(imgre,html)#获取大图链接</span><br><span class="line">        if len(imglist)==0:#如果找不到说明页面没有图片</span><br><span class="line">                return &quot;empty&quot;</span><br><span class="line">        splited = imglist[0].split(&quot;/&quot;)#将url split</span><br><span class="line">        fileName = splited[len(splited)-1]#获取文件名</span><br><span class="line">        try:</span><br><span class="line">                urllib.request.urlretrieve(imglist[0],fileName )#下载图片</span><br><span class="line">        except:</span><br><span class="line">                return &quot;failed&quot;#如果下载失败</span><br><span class="line">        return fileName#返回图片名</span><br></pre></td></tr></table></figure><ul><li>3.开始工作<br>完成<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">for i in range(1,300000): #爬取范围</span><br><span class="line">        trueurl = url+str(i)</span><br><span class="line">        html = getHtml(trueurl)</span><br><span class="line">        if html==&quot;error&quot;:</span><br><span class="line">                continue</span><br><span class="line">        print(str(i)+&quot;:&quot;+getImg(html)+&quot;\n&quot;)</span><br></pre></td></tr></table></figure></li></ul><p>这样一只单线程的爬虫就这样完成了，运行试试看。<br>你们可以根据自己任务的需要对爬虫进行修改，来爬取自己需要的内容</p><p>ps:konachan将tag都会加入到文件名上，所以你可以根据文件名来排除某些内容<br>&nbsp;</p>]]></content>
+      
+      <categories>
+          
+          <category> python </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> python </tag>
+            
+            <tag> 爬虫 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>by.cx短网址服务Beta运营--by jsp</title>
+      <link href="/2016/09/30/by-cx/"/>
+      <url>/2016/09/30/by-cx/</url>
+      <content type="html"><![CDATA[<p>自从by.cx花200多大洋注册之后一直没有拿来长期的做一个站。</p><p>不过最近正好想要学jsp，所以正好拿这域名来做一个短网址，顺便也拿来学学jsp。由于是刚开始学，所以是纯jsp，并没有写成servlet。</p><p>初学作品，所以有些许BUG请见谅，欢迎发<a href="https://github.com/tusik/JSPshorturl" target="_blank" rel="noopener">issue </a></p><p>不过最好不要拿<a href="http://by.cx">by.cx</a>来做长期的跳转服务，在后续的程序更新中可能会误删导致链接的丢失。<a id="more"></a></p><p><img src="https://nook.one/wp-content/uploads/2016/09/by.cx_.jpg" alt="by-cx"></p>]]></content>
+      
+      <categories>
+          
+          <category> Java </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> java </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>JSP连接mysql数据库</title>
+      <link href="/2016/08/29/jsp2mysql/"/>
+      <url>/2016/08/29/jsp2mysql/</url>
+      <content type="html"><![CDATA[<p>首先需要mysql的连接驱动<a href="https://dev.mysql.com/downloads/connector/j/" target="_blank" rel="noopener">https://dev.mysql.com/downloads/connector/j/</a></p><p>放入tomcat目录下的lib文件，并重启tomcat</p><p>写入内容<br><a id="more"></a><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">&lt;pre&gt;&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;</span><br><span class="line">&lt;%@ page import=&quot;java.sql.*&quot;%&gt;</span><br><span class="line">&lt;html&gt;</span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;table border=2&gt;</span><br><span class="line">&lt;tr&gt;</span><br><span class="line">    &lt;td&gt;ID&lt;/td&gt;</span><br><span class="line">    &lt;td&gt;username&lt;/td&gt;</span><br><span class="line">    &lt;td&gt;password&lt;/td&gt;</span><br><span class="line">&lt;/tr&gt;</span><br><span class="line">&lt;%</span><br><span class="line">  Connection con;</span><br><span class="line">  Statement sql;</span><br><span class="line">  ResultSet rs;</span><br><span class="line">  try&#123;Class.forName(&quot;com.mysql.jdbc.Driver&quot;).newInstance();&#125;</span><br><span class="line">  catch(Exception e)&#123;out.print(e);&#125;</span><br><span class="line">  try&#123;</span><br><span class="line">      String uri=&quot;jdbc:mysql://localhost:3306/dbname&quot;;</span><br><span class="line">      con=DriverManager.getConnection(uri,&quot;username&quot;,&quot;password&quot;);</span><br><span class="line">      sql=con.createStatement();</span><br><span class="line">      rs=sql.executeQuery(&quot;SELECT * FROM auction_user&quot;);</span><br><span class="line"> </span><br><span class="line">    while(rs.next())&#123;</span><br><span class="line">        out.print(&quot;&lt;tr&gt;&quot;);</span><br><span class="line">        out.print(&quot;&lt;td&gt;&quot;+rs.getString(1)+&quot;&lt;/td&gt;&quot;);</span><br><span class="line">        out.print(&quot;&lt;td&gt;&quot;+rs.getString(2)+&quot;&lt;/td&gt;&quot;);</span><br><span class="line">        out.print(&quot;&lt;td&gt;&quot;+rs.getString(3)+&quot;&lt;/td&gt;&quot;);</span><br><span class="line">        out.print(&quot;&lt;/tr&gt;&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    con.close();</span><br><span class="line">  &#125;</span><br><span class="line">  catch(SQLException e1)&#123;out.print(e1);&#125;</span><br><span class="line">%&gt;</span><br><span class="line">    &lt;/table&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line">&lt;/html&gt;&lt;/pre&gt;</span><br><span class="line">&lt;pre&gt;</span><br></pre></td></tr></table></figure></p><p>一个简单的对数据读取的页面就完成了</p>]]></content>
+      
+      <categories>
+          
+          <category> Java </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> java </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>centos配置JSP环境</title>
+      <link href="/2016/08/27/centos-jsp/"/>
+      <url>/2016/08/27/centos-jsp/</url>
+      <content type="html"><![CDATA[<p>不知道为什么，我就竟然开始学jsp了（PHP是最好的语言！）….</p><p>所以为了有一个测试环境，所以我就打算在腾讯云上搭一个JSP环境，tomcat+mysql+lnmp。</p><p>腾讯云在国内，而且上行只有1M只能拿来作为开发测试环境来用了(ノへ￣、)。</p><p>安装lnmp主要是为了phpmyadmin管理数据库会比较方便。<br><a id="more"></a></p><h2 id="Needs"><a href="#Needs" class="headerlink" title="Needs"></a>Needs</h2><p>tomcat:<a href="http://archive.apache.org/dist/tomcat/" target="_blank" rel="noopener">http://archive.apache.org/dist/tomcat/</a></p><p>jdk:<a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html" target="_blank" rel="noopener">http://www.oracle.com/technetwork/java/javase/downloads/index.html</a></p><p>lnmp:<a href="http://lnmp.org" target="_blank" rel="noopener">http://lnmp.org</a></p><h2 id="Install"><a href="#Install" class="headerlink" title="Install"></a>Install</h2><p>tomcat安装</p><p><pre>wget <a href="http://archive.apache.org/dist/tomcat/tomcat-8/v8.5.4/bin/apache-tomcat-8.5.4.tar.gz" target="_blank" rel="noopener">http://archive.apache.org/dist/tomcat/tomcat-8/v8.5.4/bin/apache-tomcat-8.5.4.tar.gz</a><br>tar -zxvf apache-tomcat-8.5.4.tar.gz<br>cd apache-tomcat-8.5.4<br>./startup.sh #./shutdown.sh 停止<br></pre><br>jdk安装</p><p>解压完之后</p><p><pre>vi /etc/profile<br>JAVA_HOME=/ #JDK目录<br>PATH=$PATH:$JAVA_HOME/bin<br>CLASSPATH=.:$JAVA_HOME/lib:dt.jar$JAVA_HOME/lib/tools.jar<br>export CLASSPATH JAVA_HOME PATH</pre></p><p>#保存并退出<br>source /etc/profile #生效环境变量<br>java -version #显示java版本说明成功<br>访问IP:8080</p>]]></content>
+      
+      <categories>
+          
+          <category> 程序 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> java </tag>
+            
+            <tag> linux </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>Win10.1 bash！微软大法好</title>
+      <link href="/2016/08/03/win10-1-bash-ef-bc-81-e5-be-ae-e8-bd-af-e5-a4-a7-e6-b3-95-e5-a5-bd/"/>
+      <url>/2016/08/03/win10-1-bash-ef-bc-81-e5-be-ae-e8-bd-af-e5-a4-a7-e6-b3-95-e5-a5-bd/</url>
+      <content type="html"><![CDATA[<p>今天突然看见1607更新开始推送，于是手贱不小心点了检查更新，windows就在下载更新的道路上一去不返。</p><p>经过2-3个小时下载才下载完成，安装更新大概花了半个小时。一开机就看到解锁页面的背景终于能自定义了.看了好几个月的大蓝布也该换换口味。</p><p><img src="https://nook.one/wp-content/uploads/2016/08/20160803202602-300x232.jpg" alt="20160803202602"></p><p>UI上貌似只看到设置界面左侧标签和UAC提示的样式改了，其他貌似没看到什么地方改过</p><p><img src="https://nook.one/wp-content/uploads/2016/08/20160803203014.png" alt="20160803203014"></p><p>在找不同的时候突然发现多出来了bash（虽然还是beta，而且有人是bug很多），遂直接安装。</p><p>安装完成之后需重启一次。</p><p>重启之后在控制台输入bash，可能回出现XXXX需禁用旧版控制台之类的提示</p><p>在控制台窗口属性–&gt;选项下（使用旧版控制台）去掉勾选即可正常运行</p><p><img src="https://nook.one/wp-content/uploads/2016/08/20160803203557.png" alt="20160803203557"></p><p><img src="https://nook.one/wp-content/uploads/2016/08/20160803203714.png" alt="20160803203714"></p><p>说bug bug到，选择y之后将从windows商城下载ubuntu包，大约200mb左右的样子</p><p>之后会要求输入新的用户名和密码完成之后在控制台输入bash就可以用linux命令啦！</p><p>ps：看了下是ubuntu14.04</p>]]></content>
+      
+      <categories>
+          
+          <category> 程序 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> windows </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>这年头哪有省心的IDC</title>
+      <link href="/2016/07/04/e8-bf-99-e5-b9-b4-e5-a4-b4-e5-93-aa-e6-9c-89-e7-9c-81-e5-bf-83-e7-9a-84idc/"/>
+      <url>/2016/07/04/e8-bf-99-e5-b9-b4-e5-a4-b4-e5-93-aa-e6-9c-89-e7-9c-81-e5-bf-83-e7-9a-84idc/</url>
+      <content type="html"><![CDATA[<p>自从买了饥荒together之后就打算建服和好py一起玩，有一位住在米国的同学也一起来，这时候如果把服务器放在vultr上的话LA机房ping到国内最低也有200ms，虽然她那边ping过去很低，但是我进行攻击完全打不中！</p><p>即使vultr他有JP机房，但是不知道从什么时候起大部分的JP线路都开始从美国绕一圈再回来（部分线路连印度和香港都不放过），ping比直接上美国都高，conoha的jp机房也是除了移动以外都从美国跑一圈。conoha有新加坡的CN2线路，但是除了电信以外其他访问又像屎一样。（还有为什么我明明删掉了vps后来一看竟然没删掉！冲进去的500日元只剩下17日元）<br><a id="more"></a><br>大陆能直连的jp线路只剩下KDDI，KDDI线路下的只有sakura、linode、cloudcore。。。嗯。。最便宜都是一月10刀以上的vps…而且购买都不方便…但是突然碰到linode内存翻番的活动，把手一剁就买了linode，linode国内各地各ISPping在100ms左右，但是那人在美国东海岸ping竟然有180ms….</p><p>嘛..毕竟2G内存呢，就这样用吧..</p>]]></content>
+      
+      <categories>
+          
+          <category> 日常 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 剁手 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>hyper-v设置虚拟机与物理机通信</title>
+      <link href="/2016/05/23/hyper-v-net/"/>
+      <url>/2016/05/23/hyper-v-net/</url>
+      <content type="html"><![CDATA[<p>hyper-v是微软的第一款虚拟化产品，在windows8上（不包括server系统）正式被加入，hyper-v相比vmware和vbox等其他虚拟机软件有着更强大的性能。</p><p>用vm和vbox总感觉老是拖累了物理机的性能。。</p><p>我主要使用hyper-v是要使用linux搭建一个lnmp环境来测试php+mysql代码，windows上的各种一键包都感觉<a id="more"></a>没有达到运营环境的条件，所以还是打算在linux上搭建lnmp环境。但是由于linux的驱动并不完善，使得我这台笔记本在coding的条件下只能坚持一个半小时。所以只好选择在实机上虚拟化一台linux出来，在cpu节能档下估计能超过2小时。</p><!--more--><p>然而！在配置网络方面却老是有问题，必须要通过一台路由器分配ip，折腾半天终于完成不联网状态下的通信。</p><p><img src="https://nook.one/wp-content/uploads/2016/05/20160523213940.png" alt="20160523213940"></p><ol><li>点击虚拟交换机管理器</li><li>选择左边的新建虚拟网络交换机</li><li>选择内部</li><li><p>创建<br><img src="https://nook.one/wp-content/uploads/2016/05/20160523214243.png" alt="20160523214243"></p></li><li><p>点击确认保存<br>在控制面板\网络和 Internet\网络连接，中选择以太网右键属性</p></li></ol><p><img src="https://nook.one/wp-content/uploads/2016/05/20160523215621.png" alt="20160523215621"></p><p>选择刚刚创建的内部虚拟网络</p><p>保存之后打开以太网，详细内容查看本机ip</p><p><img src="https://nook.one/wp-content/uploads/2016/05/20160523215756.png" alt="20160523215756"></p><p>之后设置虚拟机</p><p><img src="https://nook.one/wp-content/uploads/2016/05/20160523215906.png" alt="20160523215906"></p><p><img src="https://nook.one/wp-content/uploads/2016/05/20160523215925.png" alt="20160523215925"></p><p>创建网络适配器以及选择刚刚创建的内部网络</p><p>接下来设置linux手动获取ip</p><p>以centos 7为例子</p><p><pre>vim /etc/sysconfig/network-scripts/ifcfg-eth0</pre><br><img src="https://nook.one/wp-content/uploads/2016/05/20160523220218.png" alt="20160523220218"></p><p><pre>修改BOOTPROTO为static<br>增加IPADDR=192.168.137.XXX<br>增加GATEWAY=（留空，否则之后无法访问外网）<br>增加NETMASK=255.255.255.0<br></pre><br>保存后service network restart重启网络服务就可以正常的从物理机访问虚拟机，但是这时候还是无法联网，所以需要接下来的步骤</p><ol><li>和创建内部网络一样创建外部虚拟网络，注意选择上网用的网卡</li><li>虚拟机设置中添加新创建的外部虚拟网络</li><li>启动linux就可以访问外网了</li><li>可以用ip addr查看当前两个网卡的ip</li></ol>]]></content>
+      
+      <categories>
+          
+          <category> 教程 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 折腾 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>C语言RC4加密算法</title>
+      <link href="/2016/05/16/c-rc4/"/>
+      <url>/2016/05/16/c-rc4/</url>
+      <content type="html"><![CDATA[<p>C语言的上课进度实在是太慢，一个200多行的小项目都得上四五个星期，所以只好自己折腾折腾其他的功能</p><blockquote><p>RC4加密算法是大名鼎鼎的RSA三人组中的头号人物Ronald Rivest在1987年设计的密钥长度可变的流加密算法簇。之所以称其为簇，是由于其核心部分的S-box长度可为任意，但一般为256字节。该算法的速度可以达到DES加密的10倍左右，且具有很高级别的非线性。</p></blockquote><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">void rc4_init(unsigned char*s, unsigned char*key, unsigned long Len)</span><br><span class="line">&#123;</span><br><span class="line">     int i = 0, j = 0;</span><br><span class="line">     char k[256] = &#123; 0 &#125;;</span><br><span class="line">     unsigned char tmp = 0;</span><br><span class="line">     for (i = 0; i&amp;amp;amp;amp;amp;amp;lt;256; i++)</span><br><span class="line">     &#123;</span><br><span class="line">         s[i] = i;</span><br><span class="line">         k[i] = key[i%Len];</span><br><span class="line">     &#125;</span><br><span class="line">     for (i = 0; i&amp;amp;amp;amp;amp;amp;lt;256; i++)</span><br><span class="line">     &#123;</span><br><span class="line">         j = (j + s[i] + k[i]) % 256;</span><br><span class="line">         tmp = s[i];</span><br><span class="line">         s[i] = s[j];//交换s[i]和s[j]</span><br><span class="line">         s[j] = tmp;</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>以上代码为初始化Sbox的函数，需要传入的参数是Sbox地址，字符型密钥地址以及密钥的长度。密钥的作用主要是搅乱Sbox生成一个独一无二的密文。之后需要加密的数据会通过这段密文进行加密，加密的同时被加密的数据也会不断打乱Sbox内的密文。</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">void rc4_crypt(unsigned char*s, unsigned char*Data, unsigned long Len)</span><br><span class="line">&#123;</span><br><span class="line">     int i = 0, j = 0, t = 0;</span><br><span class="line">     unsigned long k = 0;</span><br><span class="line">     unsigned char tmp;</span><br><span class="line">     for (k = 0; k&amp;amp;lt;Len; k++)</span><br><span class="line">     &#123;</span><br><span class="line">         i = (i + 1) % 256;</span><br><span class="line">         j = (j + s[i]) % 256;</span><br><span class="line">         tmp = s[i];</span><br><span class="line">         s[i] = s[j];//交换s[x]和s[y]</span><br><span class="line">         s[j] = tmp;</span><br><span class="line">         t = (s[i] + s[j]) % 256;</span><br><span class="line">         Data[k] ^= s[t];</span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>加密需要传入Sbox地址，需要加密的数据和数据的长度，解密需要传入通过key初始化的sbox地址和要解密的数据和其长度</p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">     unsigned long Len;</span><br><span class="line">     unsigned char Data[256]=&amp;quot;just say hello world!&amp;quot;;</span><br><span class="line">     unsigned char s[256];</span><br><span class="line">     char key[10]=&amp;quot;example&amp;quot;;</span><br><span class="line">     Len=strlen(Data);</span><br><span class="line">     rc4_init(s,(unsigned char *)key,Len);//初始化</span><br><span class="line">     printf(&amp;quot;原始数据%s\n&amp;quot;,Data );</span><br><span class="line">     rc4_crypt(s,Data,strlen(Data));//加密</span><br><span class="line">     printf(&amp;quot;加密后%s\n&amp;quot;,Data );</span><br><span class="line">     rc4_init(s,(unsigned char *)key,Len);//重初始化</span><br><span class="line">     rc4_crypt(s,Data,strlen(Data));//解密</span><br><span class="line">     printf(&amp;quot;解密后%s\n&amp;quot;,Data );</span><br><span class="line">     system(&amp;quot;pause&amp;quot;);</span><br><span class="line">     return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p><img src="https://nook.one/wp-content/uploads/2016/05/20160516221144.png" alt="20160516221144"> 运行结果</p><p>&nbsp;</p>]]></content>
+      
+      <categories>
+          
+          <category> 程序 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 有码 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>清明休假</title>
+      <link href="/2016/04/01/e6-b8-85-e6-98-8e-e4-bc-91-e5-81-87/"/>
+      <url>/2016/04/01/e6-b8-85-e6-98-8e-e4-bc-91-e5-81-87/</url>
+      <content type="html"><![CDATA[<p>节假日回家一趟真是闲的没事做了。星期五上午课一完就跑去门口打算坐黑车去车站，但是黑车是真的黑啊，5个人50一人（之后打了滴滴也才总价90），就让黑车司机继续一边晒太阳接客去吧，反正以后都打专车去往返了。</p><p>但是由于等车浪费的时间太多，以至于刚到车站广场就听到开始检票的信息，还好现在身份证<a id="more"></a>可以代替车票，不然怎么死的都不知道。</p><p>由于同行的是女同学，所以是我帮忙提着行李箱，一个大男人（男孩）提着粉红色的行李箱….画面感十足啊。</p><p>动车反正是一贯好评，没有什么问题，但是由于是节假日，出行人数多了好多，在车站上了公交之后就已经没有地方可以立足。以至于我挤在人流中，过了三站我才终于挤到下车门，于是我就午饭没吃又走了十几分钟才回家…反正下次我是不想再在节假日坐公交车了。</p><p><img src="https://nook.one/wp-content/uploads/2016/04/img-fa70bdeb6b0e61405ef18acc5b1675ce.gif" alt="img-fa70bdeb6b0e61405ef18acc5b1675ce"></p>]]></content>
+      
+      <categories>
+          
+          <category> 日常 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 放假 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>33小时全境封锁“通关”</title>
+      <link href="/2016/03/27/division/"/>
+      <url>/2016/03/27/division/</url>
+      <content type="html"><![CDATA[<p>买来两个星期，在经过33小时的刷刷刷之后完成全部主线和支线任务通关（还有收集要素和一些小任务没做完）</p><p>这是我买的游戏中第一个主线和支线全部刷完的游戏（因为比较简单，打不过还可以组队打），不过到现在还是没有一个金装。</p><a id="more"></a><p>单机部分独狼打的辛苦点还是可以过的，不过暗区就有点蛋疼，不组队就容易被其他人QJ，尤其是回收处。放包的时候一个手雷扔过来就跪了（有人说一个雷或者一枪倒的就是挂？这样看来我碰到过几次），不过暗区内还是有和平玩家的可以随意组队一起打，虽然不知道是压缩的问题还是他们MIC的问题，我基本是听不清楚别人讲中文…英文倒是很清楚.</p><p>所以通关后我给这个游戏的评价是“优秀的换装游戏”，炒鸡多的服饰，不过为什么无论是紫色网帽还是红色白色网帽我看起来都是深蓝色的？裤子貌似平时难收集，我现在只有一页的裤子，其他服饰倒是堆了好几页。</p><p>（62大包入了watch dogs，好像全境要入冷宫了）</p>]]></content>
+      
+      <categories>
+          
+          <category> 闲谈 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 游戏 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>全境封锁14小时初评</title>
+      <link href="/2016/03/15/e5-85-a8-e5-a2-83-e5-b0-81-e9-94-8114-e5-b0-8f-e6-97-b6-e5-88-9d-e8-af-84/"/>
+      <url>/2016/03/15/e5-85-a8-e5-a2-83-e5-b0-81-e9-94-8114-e5-b0-8f-e6-97-b6-e5-88-9d-e8-af-84/</url>
+      <content type="html"><![CDATA[<p>本以为我不会喜欢这种刷刷刷地游戏，结果被引诱入坑之后反倒喜欢上了刷刷刷。买来3天就玩了14个小时，故事进度也打到40%多。不过育碧做的这种第三人称的tps很有细胞分裂的味道。</p><p>优点:</p><p>+优秀的画面（开高效果更佳）</p><p>+低延迟，不是土豆服务器（对，我是裸连，移动大法好）</p><p>+优秀的PVP和PVE系统</p><p>+多种玩法</p><p>+丰富的收集内容</p><p>+全图无缝载入</p><p>缺点：</p><p>-画面对电脑的要求高（i5-4210h,860m 1080p全低，40帧左右）</p><p>-炒鸡多的收集要素</p><p>-各种贴图错误（碰到不是一次两次）</p><p>-脸捏不好看</p><p>-无端停止响应</p><p>-传送载图有点慢</p><hr><p>14小时游戏时间我已经达到16级，但是暗区还是被吊打，所以和朋友一起去暗区是个不错的选择。</p><p>关于土豆服务器的问题，我玩全境没有碰到链接问题，倒是别人老是掉线（移动外服加成？）</p><p>育碧的BUG已经是见怪不怪了，但是我只碰到过贴图和模型错误，碰到的次数还不少，各种建筑模型扭曲变形，还好过了那块区域其他都还正常。</p><p>独狼在故事模式下到还是马马虎虎，除了有些BOSS比较难打，暗区我是没怎么去过，但是听别人说独狼在暗区玩不下去。所以还是找几个朋友一起玩吧..</p><p>&nbsp;</p>]]></content>
+      
+      <categories>
+          
+          <category> 闲谈 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 游戏 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>什么！我还有个博客！</title>
+      <link href="/2016/01/02/e4-bb-80-e4-b9-88-ef-bc-81-e6-88-91-e8-bf-98-e6-9c-89-e4-b8-aa-e5-8d-9a-e5-ae-a2-ef-bc-81/"/>
+      <url>/2016/01/02/e4-bb-80-e4-b9-88-ef-bc-81-e6-88-91-e8-bf-98-e6-9c-89-e4-b8-aa-e5-8d-9a-e5-ae-a2-ef-bc-81/</url>
+      <content type="html"><![CDATA[<p>上一篇文章写于11/23，今天是1/2。说实话，本来是想写好几篇文章来记录大学发生的事情，然而懒癌细胞已经扩散到了全身，医生已经叫我弃疗了（医生:开两包脑残粉稍微给你缓缓。我:不！我下面还很长啊！不是..我是说我还没活够呢。）<a id="more"></a></p><p>临近期末乱七八糟的事情一下子都涌了出来，什么学会学习小组比赛、毛概课表演（没错就是表演）、写各种报告，最重要的就是考试，12号最后考数学。数学从高二开始就从天上掉到地下来了，完全不知道怎么学的。当年还是竞赛的没得过奖队员。</p><p>这学期做的最多的正经事情反倒是拍了4部微电影（作业用途）….等到渲染的时候我才发现…上大学买笔记本要啥外观，要啥轻薄，性能王道啊！i5-4210h表示AE渲染一个12s的片头（1080p）8分钟，Vegas渲染全片4分钟（20min），每次渲染完才又想对视频修改，一部分时间都花在渲染去了。有条件还是组一台台式，同价位的性能比笔记本高到不知道哪里去了。钱多的话还是笔记本加台式一起爽。台式机寝室里装13，笔记本搬来搬去装13.</p><p>话说G胖用圣诞特卖从我这偷了好多钱…</p>]]></content>
+      
+      <categories>
+          
+          <category> 闲谈 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 扯淡 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>双十一又被收割完毕</title>
+      <link href="/2015/11/23/e5-8f-8c-e5-8d-81-e4-b8-80-e5-8f-88-e8-a2-ab-e6-94-b6-e5-89-b2-e5-ae-8c-e6-af-95/"/>
+      <url>/2015/11/23/e5-8f-8c-e5-8d-81-e4-b8-80-e5-8f-88-e8-a2-ab-e6-94-b6-e5-89-b2-e5-ae-8c-e6-af-95/</url>
+      <content type="html"><![CDATA[<p>果然我还是管不住我的手，又分期买了诺基亚n1，本来觉得平板不装Windows就是玩具，结果发现2k以下价位的Windows平板质量完全是渣渣，通通都是塑料屏，还各种小问题反倒安卓平板的外观和质量过得去，明年再买个Windows寨板凑活用，目前只用到看看文档。我拿到的这块右下角稍稍翘屏，不过是普遍问题就懒得换了，外观耐看，就是不知道火山灰会不会掉火山渣。type c的口用起来还挺爽，再也不用看借口和插头的脸色，闭眼随意插♂！可惜的是还是2.0的口，这还不是跟咸鱼一样吗！<a id="more"></a></p><p>系统自带启动管理，加上平时没有待机的硬件，待机一两个星期应该是没有问题的。5000mha的电池不算大，不过对于我来说看看资料看看漫画一两天是绝对够的，看PDF一类果然还是平板比Kindle好多了，Kindle的PDF体验简直渣渣，不过看非PDF类拿来看看书还是不错。</p><p>7.9的机身大小也很合适单手拿，重量也不重，平时也可以拿来看看片（我是正经的人），比小小的手机和固定的电脑来说是灰常好的。这样就可以一边看片一边玩电脑啦！</p><p>摄像头么。。没仔细看过，不过谁会拿pad来拍照。</p><p>温度上升的很快，很快可以达到温热，不过也不会到发烫的地步，毕竟铝壳，导热效果还是刚刚的。机子的性能是毋庸置疑的毕竟Intel，不过兼容性就不好说，首先就是atom和5.0，不过我用的应用没有因不兼容闪退的。其次是4：3的长宽比，有部分应用的图片，注意是图片，其他界面什么的还是能被适配，出现了被拉宽的现象，不过我也只碰到一个软件。</p><p>N1的一大宣传点就是zlauncher（n1的固件更新比较勤快，上了5.1.1又推送了一次更新），可以在主页手写字母来快速查找应用，不过我还是喜欢自己反应用列表来找应用，此功能用的次数并不多。除了这点以外zlauncher其实和原生相差无几。</p><p>语文课竟然要求拍一个微电影，Vegas渲染吃CPU不耗内存，AE反倒不吃CPU狂吃内存，几秒的片头就可以吃掉我6g内存，遂再次剁手，购入宇瞻内存8g1600一条。现在日常都只占用30%真是赏心悦目，妈妈再也不用怕AE瞎吃我内存了。</p>]]></content>
+      
+      <categories>
+          
+          <category> 日常 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 剁手 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>我吼兴奋啊</title>
+      <link href="/2015/10/25/e6-88-91-e5-90-bc-e5-85-b4-e5-a5-8b-e5-95-8a/"/>
+      <url>/2015/10/25/e6-88-91-e5-90-bc-e5-85-b4-e5-a5-8b-e5-95-8a/</url>
+      <content type="html"><![CDATA[<p><a href="http://blog.zinc.name/wp-content/uploads/2015/10/20151025215424.jpg" target="_blank" rel="noopener"><img src="http://blog.zinc.name/wp-content/uploads/2015/10/20151025215424.jpg" alt="20151025215424"></a></p><p>因为只有一只黑笔有时候用起来很不方便，就新买了一只lamy。原先一直用着safari也该换换手感了（斜眼笑）。</p><p>淘宝上AL-star F尖一般都在165左右，还送吸墨器，不知道是不是真货。我对蓝色墨水不是很喜欢，百度了半天找到鲇鱼的阿帕奇晚霞，我赶脚这颜色炒鸡NICE~于是买了10ml打算试试。</p><p><a href="http://blog.zinc.name/wp-content/uploads/2015/10/DSC_0031.jpg" target="_blank" rel="noopener"><img src="http://blog.zinc.name/wp-content/uploads/2015/10/DSC_0031-1024x768.jpg" alt="DSC_0031"></a></p><p>不过快递来的迟，先让自带的蓝色墨囊破了处…等用完这一支蓝色的再看看阿帕奇晚霞到底长啥样。</p>]]></content>
+      
+      <categories>
+          
+          <category> 未分类 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 剁手 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    <entry>
+      <title>第一篇之后再来第一篇</title>
+      <link href="/2015/10/22/e7-ac-ac-e4-b8-80-e7-af-87-e4-b9-8b-e5-90-8e-e5-86-8d-e6-9d-a5-e7-ac-ac-e4-b8-80-e7-af-87/"/>
+      <url>/2015/10/22/e7-ac-ac-e4-b8-80-e7-af-87-e4-b9-8b-e5-90-8e-e5-86-8d-e6-9d-a5-e7-ac-ac-e4-b8-80-e7-af-87/</url>
+      <content type="html"><![CDATA[<p>群里的“吔司机”同志（群里乱改名片名字都叫不粗），给我发了个阿里云的大学生优惠链接，大约10块一个月，再加上30元代金券结余69第一年购得。但是前提是通过支付宝实名和学信网学籍认证，一年只有三次大学生认证机会，请勿乱试。如果学信网上可查到学籍，但是无法通过大学生认证，可提交工单，然后提交学信网的截图和本人拿着学生证的照片便可人工通过大学生认证。<a id="more"></a></p><ul><li>E3单核</li><li>1G 内存</li><li>Windows 40G硬盘，linux20G</li><li>按需付费流量包，15G一个月（购买主机后会送代金券，自动扣除流量费用）</li><li>青岛机房，无限宽带（可设置上鲜，防止流量被刷光）<br>由于机房是国内，so要求备案，不然不能开站。阿里的代备案服务也是炒鸡的方便（反正浙江省的表示不用邮寄材料），备案时长11天，阿里也给我多加了11天的主机时间，幸好也是工信部没打电话来验证机主信息（要是上课时打来电话我可没法接），直接就过了（估计是电话卡实名制的原因）。</li></ul><p>大学生优惠购买的主机可以续费至大学毕业，也就是说大概400买4年国内的VPS！还送备案服务！炒鸡划算啊虽然老有人说阿里I/O不行，但对于我们这种0 IP的小站主有啥关系捏！</p>]]></content>
+      
+      <categories>
+          
+          <category> 闲谈 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 扯淡 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+  
+  
+</search>
